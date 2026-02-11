@@ -1,0 +1,1318 @@
+"use client";
+
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Search,
+  RefreshCcw,
+  ExternalLink,
+  Flame,
+  TrendingUp,
+  Globe,
+} from "lucide-react";
+
+// --- Sistine Research logo (SVG provided by user) ---
+const SISTINE_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="400" zoomAndPan="magnify" viewBox="0 0 300 299.999988" height="400" preserveAspectRatio="xMidYMid meet" version="1.0"><defs><filter x="0%" y="0%" width="100%" height="100%" id="b7aeb2c807"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0.000000 0 0 0 0 0.000000 0 0 0 0 0.000000 0 0 0 1.000000 0"/></filter><clipPath id="769fb7fd6c"><path d="M 15 0 L 285 0 C 293.285156 0 300 6.714844 300 15 L 300 285 C 300 293.285156 293.285156 300 285 300 L 15 300 C 6.714844 300 0 293.285156 0 285 L 0 15 C 0 6.714844 6.714844 0 15 0 Z M 15 0 " clip-rule="nonzero"/></clipPath><mask id="750453c79b"><g filter="url(#b7aeb2c807)"><rect x="-30" width="360" fill="#000000" y="-29.999999" height="359.999986" fill-opacity="0.996"/></g></mask><clipPath id="85e88ed01f"><path d="M 0.410156 0.0078125 L 299.589844 0.0078125 L 299.589844 299.1875 L 0.410156 299.1875 Z M 0.410156 0.0078125 " clip-rule="nonzero"/></clipPath><clipPath id="6d9e43fb28"><path d="M 15.410156 0.0078125 L 284.589844 0.0078125 C 292.875 0.0078125 299.589844 6.722656 299.589844 15.007812 L 299.589844 284.1875 C 299.589844 292.472656 292.875 299.1875 284.589844 299.1875 L 15.410156 299.1875 C 7.125 299.1875 0.410156 292.472656 0.410156 284.1875 L 0.410156 15.007812 C 0.410156 6.722656 7.125 0.0078125 15.410156 0.0078125 Z M 15.410156 0.0078125 " clip-rule="nonzero"/></clipPath><clipPath id="628c6a349c"><rect x="0" width="300" y="0" height="300"/></clipPath></defs><g clip-path="url(#769fb7fd6c)"><rect x="-30" width="360" fill="#ffc107" y="-29.999999" height="359.999986" fill-opacity="1"/></g><g mask="url(#750453c79b)"><g transform="matrix(1, 0, 0, 1, 0, 0)"><g clip-path="url(#628c6a349c)"><g clip-path="url(#85e88ed01f)"><g clip-path="url(#6d9e43fb28)"><path fill="#0a0f18" d="M 178.480469 68.757812 C 173.230469 68.757812 168.980469 73.007812 168.980469 78.257812 L 168.980469 165.757812 C 168.980469 172.308594 175.277344 177.03125 181.652344 175.464844 L 233.5 162.714844 C 237.734375 161.671875 240.71875 157.871094 240.71875 153.511719 L 240.71875 78.257812 C 240.71875 73.007812 236.46875 68.757812 231.21875 68.757812 Z M 178.480469 68.757812 "/><path fill="#0a0f18" d="M 110.296875 63.507812 C 105.046875 63.507812 100.796875 67.757812 100.796875 73.007812 L 100.796875 229.257812 C 100.796875 234.507812 105.046875 238.757812 110.296875 238.757812 L 163.980469 238.757812 C 169.230469 238.757812 173.480469 234.507812 173.480469 229.257812 L 173.480469 73.007812 C 173.480469 67.757812 169.230469 63.507812 163.980469 63.507812 Z M 110.296875 63.507812 "/><path fill="#0a0f18" d="M 68.464844 170.570312 C 63.214844 170.570312 58.964844 174.820312 58.964844 180.070312 L 58.964844 223.949219 C 58.964844 229.199219 63.214844 233.449219 68.464844 233.449219 L 95.453125 233.449219 C 100.703125 233.449219 104.953125 229.199219 104.953125 223.949219 L 104.953125 162.699219 C 104.953125 156.148438 98.65625 151.425781 92.28125 152.996094 L 70.742188 158.292969 C 66.507812 159.332031 63.523438 163.132812 63.523438 167.496094 L 63.523438 223.949219 C 63.523438 223.949219 63.523438 223.949219 63.523438 223.949219 C 63.523438 223.949219 63.523438 223.949219 63.523438 223.949219 L 63.523438 180.070312 C 63.523438 174.820312 67.773438 170.570312 73.023438 170.570312 Z M 68.464844 170.570312 "/></g></g></g></g></g></g>`;
+const SISTINE_LOGO_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(SISTINE_LOGO_SVG)}`;
+const SISTINE_LOGO_URL = SISTINE_LOGO_DATA_URI;
+
+type AssetClass = "Crypto" | "Equities" | "Indexes" | "Commodities" | "FX";
+
+type ImpactDirection = "Bullish" | "Bearish" | "Neutral";
+
+type AssetImpact = {
+  asset: string;
+  assetClass: AssetClass;
+  direction: ImpactDirection;
+  rationale: string;
+};
+
+type FeedItem = {
+  id: string;
+  sourceName: string;
+  handle: string;
+  ts: string;
+  text: string;
+  url?: string;
+  lat?: number;
+  lon?: number;
+  country?: string;
+  severity: number;
+  impacts: AssetImpact[];
+};
+
+type QuoteRow = {
+  key: string;
+  name: string;
+  symbol: string;
+  assetClass: AssetClass;
+  price: number;
+  mcap: number;
+  chg24: number;
+  spark: number[];
+};
+
+function clamp(n: number, a: number, b: number) {
+  return Math.max(a, Math.min(b, n));
+}
+
+function fmtMoney(n: number) {
+  if (!Number.isFinite(n)) return "—";
+  const abs = Math.abs(n);
+  const sign = n < 0 ? "-" : "";
+  if (abs >= 1e12) return `${sign}$${(abs / 1e12).toFixed(2)}T`;
+  if (abs >= 1e9) return `${sign}$${(abs / 1e9).toFixed(2)}B`;
+  if (abs >= 1e6) return `${sign}$${(abs / 1e6).toFixed(2)}M`;
+  if (abs >= 1e3) return `${sign}$${(abs / 1e3).toFixed(2)}K`;
+  return `${sign}$${abs.toFixed(abs >= 1 ? 2 : 4)}`;
+}
+
+function fmtPrice(n: number) {
+  if (!Number.isFinite(n)) return "—";
+  const abs = Math.abs(n);
+  if (abs >= 1000) return `$${n.toFixed(2)}`;
+  if (abs >= 1) return `$${n.toFixed(3)}`;
+  return `$${n.toFixed(6)}`;
+}
+
+function fmtPct(n: number) {
+  if (!Number.isFinite(n)) return "—";
+  const s = n >= 0 ? "+" : "";
+  return `${s}${n.toFixed(2)}%`;
+}
+
+function timeAgoLabel(iso: string) {
+  const ms = Date.now() - new Date(iso).getTime();
+  const m = Math.max(0, Math.floor(ms / 60000));
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 48) return `${h}h`;
+  const d = Math.floor(h / 24);
+  return `${d}d`;
+}
+
+function stableId(seed: string) {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(16);
+}
+
+function twTextToCountryHint(text: string) {
+  const t = (text || "").toLowerCase();
+  const map: Array<[RegExp, string]> = [
+    [new RegExp("\\b(ukraine|kyiv|kiev)\\b", "i"), "Ukraine"],
+    [new RegExp("\\b(russia|moscow|kremlin)\\b", "i"), "Russia"],
+    [new RegExp("\\b(israel|jerusalem|idf)\\b", "i"), "Israel"],
+    [new RegExp("\\b(iran|tehran)\\b", "i"), "Iran"],
+    [new RegExp("\\b(china|beijing|taiwan|strait)\\b", "i"), "China"],
+    [new RegExp("\\b(japan|tokyo)\\b", "i"), "Japan"],
+    [
+      new RegExp("\\b(us|u\\.s\\.|united states|washington)\\b", "i"),
+      "United States of America",
+    ],
+    [new RegExp("\\b(uk|united kingdom|london|british)\\b", "i"), "United Kingdom"],
+    [new RegExp("\\b(germany|berlin)\\b", "i"), "Germany"],
+    [new RegExp("\\b(france|paris)\\b", "i"), "France"],
+    [new RegExp("\\b(red sea|suez|yemen|houthis)\\b", "i"), "Yemen"],
+  ];
+  for (const [re, name] of map) {
+    if (re.test(t)) return name;
+  }
+  return null;
+}
+
+function inferImpactsFromText(text: string): { impacts: AssetImpact[]; severity: number } {
+  const t = (text || "").toLowerCase();
+
+  const RE_WAR = new RegExp("(strike|missile|drone|air raid|artillery|attack|killed|explosion)");
+  const RE_SANCTIONS = new RegExp("(sanction|export control|blacklist|asset freeze|tariff)");
+  const RE_MARITIME = new RegExp("(shipping|strait|port|red sea|suez|vessel|navy)");
+  const RE_CYBER = new RegExp("(cyber|hack|ransom|ddos|malware)");
+  const RE_RATES = new RegExp("(yields|rates|treasury|bond|fed)");
+  const RE_OIL = new RegExp("(oil|crude|brent|wti|pipeline|refinery|opec)");
+  const RE_SILVER = new RegExp("(silver|xag)");
+  const RE_USD = new RegExp("(usd|dollar|fx|currency)");
+  const RE_CRYPTO = new RegExp("(btc|bitcoin|eth|ethereum|crypto|sol|xrp)");
+
+  let sev = 0.28;
+  if (RE_WAR.test(t)) sev += 0.42;
+  if (RE_SANCTIONS.test(t)) sev += 0.18;
+  if (RE_MARITIME.test(t)) sev += 0.16;
+  if (RE_CYBER.test(t)) sev += 0.12;
+  if (t.includes("breaking")) sev += 0.08;
+  sev = clamp(sev, 0, 1);
+
+  const impacts: AssetImpact[] = [];
+
+  const push = (
+    asset: string,
+    assetClass: AssetClass,
+    direction: ImpactDirection,
+    rationale: string
+  ) => {
+    impacts.push({ asset, assetClass, direction, rationale });
+  };
+
+  if (RE_WAR.test(t) || RE_SANCTIONS.test(t) || RE_MARITIME.test(t)) {
+    push("Gold", "Commodities", "Bullish", "Risk-off demand and geopolitical premium.");
+    push(
+      "Equities",
+      "Equities",
+      "Bearish",
+      "Higher uncertainty and risk premia can pressure stocks."
+    );
+  }
+
+  if (RE_RATES.test(t)) {
+    push(
+      "Treasuries",
+      "Indexes",
+      "Neutral",
+      "Rates headlines often reprice duration; direction depends on surprise."
+    );
+    push(
+      "USD",
+      "FX",
+      RE_USD.test(t) ? "Bullish" : "Neutral",
+      "FX/rates can pull flows into USD depending on tone."
+    );
+  }
+
+  if (RE_OIL.test(t) || RE_MARITIME.test(t)) {
+    push(
+      "Oil (WTI)",
+      "Commodities",
+      "Bullish",
+      "Supply risk and shipping disruptions can raise crude risk premium."
+    );
+  }
+
+  if (RE_SILVER.test(t)) {
+    push(
+      "Silver",
+      "Commodities",
+      "Bullish",
+      "Direct mention; often benefits from risk premium and supply concerns."
+    );
+  } else {
+    push(
+      "Silver",
+      "Commodities",
+      "Neutral",
+      "No explicit silver mention; impact depends on second-order effects."
+    );
+  }
+
+  if (RE_CRYPTO.test(t)) {
+    push("BTC", "Crypto", "Neutral", "Crypto can react idiosyncratically; verify correlation regime.");
+  } else {
+    push("BTC", "Crypto", "Neutral", "Included for monitoring as risk proxy.");
+  }
+
+  if (RE_CYBER.test(t)) {
+    push(
+      "Cybersecurity",
+      "Equities",
+      "Bullish",
+      "Threat activity can boost cybersecurity spending expectations."
+    );
+  }
+
+  const uniq: AssetImpact[] = [];
+  const seen = new Set<string>();
+  for (const im of impacts) {
+    const k = `${im.assetClass}:${im.asset}`.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    uniq.push(im);
+  }
+
+  return { impacts: uniq.slice(0, 3), severity: sev };
+}
+
+function directionBadge(dir: ImpactDirection) {
+  if (dir === "Bullish") return "border-emerald-500/25 text-emerald-200 bg-emerald-500/10";
+  if (dir === "Bearish") return "border-rose-500/25 text-rose-200 bg-rose-500/10";
+  return "border-white/10 text-white/75 bg-white/5";
+}
+
+function classBadge(c: AssetClass) {
+  const m: Record<AssetClass, string> = {
+    Crypto: "border-sky-500/25 text-sky-200 bg-sky-500/10",
+    Equities: "border-indigo-500/25 text-indigo-200 bg-indigo-500/10",
+    Indexes: "border-amber-500/25 text-amber-200 bg-amber-500/10",
+    Commodities: "border-orange-500/25 text-orange-200 bg-orange-500/10",
+    FX: "border-emerald-500/25 text-emerald-200 bg-emerald-500/10",
+  };
+  return m[c];
+}
+
+function miniSparkPath(values: number[], w = 68, h = 20, pad = 2) {
+  const v = (values || []).filter((x) => Number.isFinite(x));
+  if (v.length < 2) return "";
+  const min = Math.min(...v);
+  const max = Math.max(...v);
+  const dx = (w - pad * 2) / (v.length - 1);
+  const norm = (x: number) => {
+    if (max === min) return h / 2;
+    const t = (x - min) / (max - min);
+    return pad + (1 - t) * (h - pad * 2);
+  };
+  let d = "";
+  for (let i = 0; i < v.length; i++) {
+    const x = pad + dx * i;
+    const y = norm(v[i]);
+    d += i === 0 ? `M ${x.toFixed(2)} ${y.toFixed(2)}` : ` L ${x.toFixed(2)} ${y.toFixed(2)}`;
+  }
+  return d;
+}
+
+function logoDataUrl(label: string) {
+  const s = label || "?";
+  const bg = "#0b1220";
+  const fg = "#e6eefc";
+  const stroke = "rgba(255,255,255,0.16)";
+  const txt = s.slice(0, 4).toUpperCase();
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">` +
+    `<rect x="4" y="4" width="56" height="56" rx="14" fill="${bg}" stroke="${stroke}"/>` +
+    `<text x="32" y="38" font-family="ui-sans-serif, system-ui" font-size="18" text-anchor="middle" fill="${fg}" font-weight="700">${txt}</text>` +
+    `</svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+async function fetchTextWithCorsFallback(url: string): Promise<string> {
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(String(r.status));
+    return await r.text();
+  } catch {
+    const prox = [
+      (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+      (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    ];
+    for (const p of prox) {
+      try {
+        const r = await fetch(p(url));
+        if (!r.ok) throw new Error(String(r.status));
+        return await r.text();
+      } catch {
+      }
+    }
+    throw new Error(`Failed to fetch ${url}`);
+  }
+}
+
+async function fetchJsonWithCorsFallback(url: string): Promise<any> {
+  const t = await fetchTextWithCorsFallback(url);
+  const trimmed = String(t || "").trim();
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    const obj = trimmed.indexOf("{");
+    const arr = trimmed.indexOf("[");
+    const start = obj === -1 ? arr : arr === -1 ? obj : Math.min(obj, arr);
+    if (start >= 0) return JSON.parse(trimmed.slice(start));
+    throw new Error("Invalid JSON");
+  }
+}
+
+function pointInRing(ring: number[][], lon: number, lat: number) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0];
+    const yi = ring[i][1];
+    const xj = ring[j][0];
+    const yj = ring[j][1];
+    const intersect = yi > lat !== yj > lat && lon < ((xj - xi) * (lat - yi)) / (yj - yi + 1e-12) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function geomContainsPoint(geom: any, lon: number, lat: number) {
+  if (!geom) return false;
+  if (geom.type === "Polygon") {
+    const rings: number[][][] = geom.coordinates || [];
+    if (!rings.length) return false;
+    if (!pointInRing(rings[0], lon, lat)) return false;
+    for (let i = 1; i < rings.length; i++) {
+      if (pointInRing(rings[i], lon, lat)) return false;
+    }
+    return true;
+  }
+  if (geom.type === "MultiPolygon") {
+    const polys: number[][][][] = geom.coordinates || [];
+    for (const poly of polys) {
+      const rings: number[][][] = poly || [];
+      if (!rings.length) continue;
+      if (!pointInRing(rings[0], lon, lat)) continue;
+      let inHole = false;
+      for (let i = 1; i < rings.length; i++) {
+        if (pointInRing(rings[i], lon, lat)) {
+          inHole = true;
+          break;
+        }
+      }
+      if (!inHole) return true;
+    }
+  }
+  return false;
+}
+
+function computeBbox(geom: any): [number, number, number, number] {
+  let minLon = 180,
+    minLat = 90,
+    maxLon = -180,
+    maxLat = -90;
+
+  const visit = (coords: any) => {
+    if (!coords) return;
+    if (typeof coords[0] === "number" && typeof coords[1] === "number") {
+      const lon = Number(coords[0]);
+      const lat = Number(coords[1]);
+      if (!Number.isFinite(lon) || !Number.isFinite(lat)) return;
+      minLon = Math.min(minLon, lon);
+      minLat = Math.min(minLat, lat);
+      maxLon = Math.max(maxLon, lon);
+      maxLat = Math.max(maxLat, lat);
+      return;
+    }
+    for (const c of coords) visit(c);
+  };
+
+  visit(geom.coordinates);
+  return [minLon, minLat, maxLon, maxLat];
+}
+
+function project(lon: number, lat: number, w: number, h: number) {
+  const x = ((lon + 180) / 360) * w;
+  const y = ((90 - lat) / 180) * h;
+  return { x, y };
+}
+
+function geoToSvgPath(geom: any, w: number, h: number) {
+  const ringToPath = (ring: any[]) => {
+    if (!Array.isArray(ring) || ring.length === 0) return "";
+    let d = "";
+    for (let i = 0; i < ring.length; i++) {
+      const pt = ring[i];
+      if (!Array.isArray(pt) || pt.length < 2) continue;
+      const lon = Number(pt[0]);
+      const lat = Number(pt[1]);
+      if (!Number.isFinite(lon) || !Number.isFinite(lat)) continue;
+      const { x, y } = project(lon, lat, w, h);
+      d += i === 0 ? `M ${x.toFixed(2)} ${y.toFixed(2)}` : ` L ${x.toFixed(2)} ${y.toFixed(2)}`;
+    }
+    return d + " Z ";
+  };
+
+  const polyToPath = (coords: any[]) => {
+    let d = "";
+    for (const ring of coords || []) d += ringToPath(ring);
+    return d;
+  };
+
+  if (!geom) return "";
+  if (geom.type === "Polygon") return polyToPath(geom.coordinates);
+  if (geom.type === "MultiPolygon") {
+    let d = "";
+    for (const poly of geom.coordinates || []) d += polyToPath(poly);
+    return d;
+  }
+  return "";
+}
+
+type CountryShape = {
+  name: string;
+  geom: any;
+  bbox: [number, number, number, number];
+  path: string;
+};
+
+function SvgWorldMap(props: {
+  items: FeedItem[];
+  selectedCountry: string | null;
+  onCountryToggle: (country: string) => void;
+}) {
+  const w = 980;
+  const h = 480;
+
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const [countries, setCountries] = useState<CountryShape[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [hover, setHover] = useState<{ name: string; x: number; y: number; count: number } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const url = "https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json";
+        const gj = await fetchJsonWithCorsFallback(url);
+        const feats: any[] = Array.isArray(gj?.features) ? gj.features : [];
+        const parsed: CountryShape[] = feats
+          .map((f) => {
+            const name = String(f?.properties?.name ?? "");
+            const geom = f?.geometry;
+            const bbox = computeBbox(geom);
+            const path = geoToSvgPath(geom, w, h);
+            return { name, geom, bbox, path } as CountryShape;
+          })
+          .filter((c) => c.name && c.path);
+        if (!cancelled) {
+          setCountries(parsed);
+          setErr(null);
+        }
+      } catch (e: any) {
+        if (!cancelled) {
+          setCountries([]);
+          setErr(String(e?.message ?? e));
+        }
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const counts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const it of props.items) {
+      const c = it.country;
+      if (!c) continue;
+      m.set(c, (m.get(c) ?? 0) + 1);
+    }
+    return m;
+  }, [props.items]);
+
+  const maxCount = useMemo(() => {
+    let mx = 0;
+    counts.forEach((v) => {
+      mx = Math.max(mx, v);
+    });
+    return mx;
+  }, [counts]);
+
+  const intensity = (name: string) => {
+    const c = counts.get(name) ?? 0;
+    if (!maxCount) return 0;
+    return clamp(c / maxCount, 0, 1);
+  };
+
+  const fillFor = (name: string) => {
+    const t = intensity(name);
+    if (t <= 0) return "rgba(255,255,255,0.045)";
+    return `rgba(99,102,241,${0.06 + t * 0.22})`;
+  };
+
+  const strokeFor = (name: string) => {
+    const t = intensity(name);
+    if (props.selectedCountry === name) return "rgba(255,255,255,0.55)";
+    return t > 0 ? "rgba(99,102,241,0.42)" : "rgba(255,255,255,0.10)";
+  };
+
+  const onMove = (ev: React.MouseEvent, name: string) => {
+    if (!wrapRef.current) return;
+    const r = wrapRef.current.getBoundingClientRect();
+    const x = ev.clientX - r.left;
+    const y = ev.clientY - r.top;
+    setHover({ name, x, y, count: counts.get(name) ?? 0 });
+  };
+
+  const clearHover = () => setHover(null);
+
+  return (
+    <div className="relative h-full w-full" ref={wrapRef}>
+      <svg
+        viewBox={`0 0 ${w} ${h}`}
+        className="h-full w-full"
+        preserveAspectRatio="xMidYMid slice"
+        onMouseLeave={clearHover}
+      >
+        <rect x={0} y={0} width={w} height={h} fill="#0b1220" />
+
+        {countries && countries.length > 0 ? (
+          <g>
+            {countries.map((c) => (
+              <path
+                key={c.name}
+                d={c.path}
+                fill={fillFor(c.name)}
+                stroke={strokeFor(c.name)}
+                strokeWidth={0.8}
+                style={{ cursor: "pointer" }}
+                onMouseEnter={(e) => onMove(e, c.name)}
+                onMouseMove={(e) => onMove(e, c.name)}
+                onClick={() => props.onCountryToggle(c.name)}
+              />
+            ))}
+          </g>
+        ) : (
+          <g>
+            <path
+              d="M 70 165 L 165 118 L 252 132 L 304 170 L 330 224 L 264 256 L 170 260 L 116 230 Z"
+              fill="rgba(255,255,255,0.06)"
+              stroke="rgba(255,255,255,0.14)"
+              strokeWidth={0.8}
+            />
+            <path
+              d="M 318 152 L 412 126 L 516 126 L 612 152 L 672 198 L 650 250 L 586 270 L 512 246 L 428 240 L 360 210 Z"
+              fill="rgba(255,255,255,0.06)"
+              stroke="rgba(255,255,255,0.14)"
+              strokeWidth={0.8}
+            />
+          </g>
+        )}
+
+        {props.items
+          .filter((x) => Number.isFinite(x.lat) && Number.isFinite(x.lon))
+          .slice(0, 140)
+          .map((e) => {
+            const lon = Number(e.lon);
+            const lat = Number(e.lat);
+            const { x, y } = project(lon, lat, w, h);
+            return (
+              <circle
+                key={e.id}
+                cx={x}
+                cy={y}
+                r={2.4}
+                fill="rgba(255,255,255,0.72)"
+                opacity={0.75}
+              />
+            );
+          })}
+      </svg>
+
+      {hover && (
+        <div
+          className="pointer-events-none absolute z-20 -translate-y-2 rounded-2xl border border-white/10 bg-black/70 px-3 py-2 text-[11px] text-white/85 shadow-lg backdrop-blur"
+          style={{ left: Math.min(hover.x + 12, 920), top: Math.max(hover.y - 10, 6) }}
+        >
+          <div className="font-semibold">{hover.name}</div>
+          <div className="text-white/60">{hover.count} items</div>
+        </div>
+      )}
+
+      {err && (
+        <div className="absolute bottom-3 left-3 right-3 rounded-2xl border border-white/10 bg-black/55 px-3 py-2 text-[11px] text-white/70 backdrop-blur">
+          Map data failed to load in this environment: {err}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function runSelfTests() {
+  const assert = (cond: any, msg: string) => {
+    if (!cond) throw new Error(`SelfTest failed: ${msg}`);
+  };
+  assert(clamp(10, 0, 5) === 5, "clamp upper");
+  assert(clamp(-1, 0, 5) === 0, "clamp lower");
+  assert(stableId("abc") === stableId("abc"), "stableId stable");
+  const d = miniSparkPath([1, 2, 3, 4]);
+  assert(typeof d === "string" && d.includes("M"), "spark path");
+  const c = twTextToCountryHint("Breaking: strikes near Kyiv");
+  assert(c === "Ukraine", "country hint");
+  const { impacts } = inferImpactsFromText("cyber attack reported");
+  assert(impacts.length > 0, "impacts non-empty");
+  const square = {
+    type: "Polygon",
+    coordinates: [
+      [
+        [0, 0],
+        [2, 0],
+        [2, 2],
+        [0, 2],
+        [0, 0],
+      ],
+    ],
+  };
+  assert(geomContainsPoint(square, 1, 1) === true, "geomContainsPoint inside");
+  assert(geomContainsPoint(square, -1, 1) === false, "geomContainsPoint outside");
+}
+
+function makeDummyFeed(): FeedItem[] {
+  const base = [
+    {
+      text: "BREAKING: Reports of air defense activity near Kyiv following drone launches.",
+      lat: 50.4501,
+      lon: 30.5234,
+    },
+    {
+      text: "FLASH: New sanctions package announced targeting energy exports; markets watching supply response.",
+      lat: 50.1109,
+      lon: 8.6821,
+    },
+    {
+      text: "UPDATE: Shipping advisory issued for Red Sea corridor; reroutes may increase transit times.",
+      lat: 15.5527,
+      lon: 48.5164,
+    },
+    {
+      text: "ALERT: Cyber incident disclosed affecting public-sector services; no outage reported.",
+      lat: 38.9072,
+      lon: -77.0369,
+    },
+    {
+      text: "HEADS UP: Yields jump after hot inflation print; dollar strengthens in early trading.",
+      lat: 40.7128,
+      lon: -74.006,
+    },
+    {
+      text: "BREAKING: Talks resume on ceasefire framework; diplomats cite cautious progress.",
+      lat: 46.2044,
+      lon: 6.1432,
+    },
+  ];
+
+  const out: FeedItem[] = [];
+  for (let i = 0; i < 26; i++) {
+    const b = base[i % base.length];
+    const ts = new Date(Date.now() - (i * 17 + 6) * 60000).toISOString();
+    const { impacts, severity } = inferImpactsFromText(b.text);
+    const country = twTextToCountryHint(b.text) ?? undefined;
+    out.push({
+      id: `fs_${stableId(b.text + ts)}`,
+      sourceName: "FirstSquawk",
+      handle: "FirstSquawk",
+      ts,
+      text: b.text + (i % 4 === 0 ? " (Original)" : ""),
+      url: "https://x.com/FirstSquawk",
+      lat: b.lat,
+      lon: b.lon,
+      country,
+      severity,
+      impacts,
+    });
+  }
+  return out;
+}
+
+const MARKET_TEMPLATE: Array<{ key: string; name: string; symbol: string; assetClass: AssetClass }> = [
+  { key: "btc", name: "Bitcoin", symbol: "BTC", assetClass: "Crypto" },
+  { key: "eth", name: "Ethereum", symbol: "ETH", assetClass: "Crypto" },
+  { key: "sol", name: "Solana", symbol: "SOL", assetClass: "Crypto" },
+  { key: "xrp", name: "XRP", symbol: "XRP", assetClass: "Crypto" },
+  { key: "bnb", name: "BNB", symbol: "BNB", assetClass: "Crypto" },
+  { key: "ada", name: "Cardano", symbol: "ADA", assetClass: "Crypto" },
+  { key: "doge", name: "Dogecoin", symbol: "DOGE", assetClass: "Crypto" },
+  { key: "avax", name: "Avalanche", symbol: "AVAX", assetClass: "Crypto" },
+  { key: "link", name: "Chainlink", symbol: "LINK", assetClass: "Crypto" },
+  { key: "matic", name: "Polygon", symbol: "MATIC", assetClass: "Crypto" },
+  { key: "aapl", name: "Apple", symbol: "AAPL", assetClass: "Equities" },
+  { key: "msft", name: "Microsoft", symbol: "MSFT", assetClass: "Equities" },
+  { key: "nvda", name: "NVIDIA", symbol: "NVDA", assetClass: "Equities" },
+  { key: "tsla", name: "Tesla", symbol: "TSLA", assetClass: "Equities" },
+  { key: "amzn", name: "Amazon", symbol: "AMZN", assetClass: "Equities" },
+  { key: "googl", name: "Alphabet", symbol: "GOOGL", assetClass: "Equities" },
+  { key: "meta", name: "Meta", symbol: "META", assetClass: "Equities" },
+  { key: "lmt", name: "Lockheed", symbol: "LMT", assetClass: "Equities" },
+  { key: "pltr", name: "Palantir", symbol: "PLTR", assetClass: "Equities" },
+  { key: "xom", name: "Exxon", symbol: "XOM", assetClass: "Equities" },
+  { key: "spx", name: "S&P 500", symbol: "SPX", assetClass: "Indexes" },
+  { key: "ndx", name: "Nasdaq 100", symbol: "NDX", assetClass: "Indexes" },
+  { key: "dji", name: "Dow", symbol: "DJI", assetClass: "Indexes" },
+  { key: "vix", name: "VIX", symbol: "VIX", assetClass: "Indexes" },
+  { key: "dxy", name: "US Dollar", symbol: "DXY", assetClass: "FX" },
+  { key: "gold", name: "Gold", symbol: "XAU", assetClass: "Commodities" },
+  { key: "silver", name: "Silver", symbol: "XAG", assetClass: "Commodities" },
+  { key: "wti", name: "Oil (WTI)", symbol: "WTI", assetClass: "Commodities" },
+  { key: "natgas", name: "Nat Gas", symbol: "NG", assetClass: "Commodities" },
+  { key: "copper", name: "Copper", symbol: "HG", assetClass: "Commodities" },
+];
+
+function seededSpark(seed: string, n = 18) {
+  let x = 0.37;
+  for (let i = 0; i < seed.length; i++) x = (x * 1.07 + (seed.charCodeAt(i) % 13) / 97) % 1;
+  const out: number[] = [];
+  let v = 100;
+  for (let i = 0; i < n; i++) {
+    const r =
+      (Math.sin((i + 1) * 1.7 + x * 10) + Math.cos((i + 1) * 0.9 + x * 7)) * 0.8;
+    v = v * (1 + r * 0.003);
+    out.push(v);
+  }
+  return out;
+}
+
+function makeDemoQuotes(): QuoteRow[] {
+  const out: QuoteRow[] = [];
+  for (const a of MARKET_TEMPLATE) {
+    const sp = seededSpark(a.key);
+    const price =
+      sp[sp.length - 1] *
+      (a.assetClass === "Crypto" ? 0.8 : a.assetClass === "Commodities" ? 0.35 : 1.0);
+    const chg24 = ((sp[sp.length - 1] - sp[0]) / sp[0]) * 100;
+    const mcap =
+      a.assetClass === "Crypto"
+        ? 3e10 + (Math.abs(price) * 2.3e9) % 7e11
+        : a.assetClass === "Equities"
+        ? 7e10 + (Math.abs(price) * 1.7e9) % 2.2e12
+        : a.assetClass === "Indexes"
+        ? 2e12 + (Math.abs(price) * 8e9) % 8e12
+        : 4e10 + (Math.abs(price) * 9e8) % 6e11;
+
+    out.push({
+      key: a.key,
+      name: a.name,
+      symbol: a.symbol,
+      assetClass: a.assetClass,
+      price,
+      mcap,
+      chg24,
+      spark: sp,
+    });
+  }
+  return out;
+}
+
+async function fetchLiveQuotes(base: QuoteRow[]): Promise<QuoteRow[]> {
+  const next = base.map((r) => ({ ...r }));
+
+  const byKey = new Map<string, QuoteRow>();
+  for (const r of next) byKey.set(r.key, r);
+
+  try {
+    const ids = [
+      "bitcoin",
+      "ethereum",
+      "solana",
+      "ripple",
+      "binancecoin",
+      "cardano",
+      "dogecoin",
+      "avalanche-2",
+      "chainlink",
+      "polygon-ecosystem-token",
+    ].join(",");
+    const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${encodeURIComponent(
+      ids
+    )}&price_change_percentage=24h&sparkline=true`;
+    const data = await fetchJsonWithCorsFallback(url);
+    if (Array.isArray(data)) {
+      const mapId: Record<string, string> = {
+        bitcoin: "btc",
+        ethereum: "eth",
+        solana: "sol",
+        ripple: "xrp",
+        binancecoin: "bnb",
+        cardano: "ada",
+        dogecoin: "doge",
+        "avalanche-2": "avax",
+        chainlink: "link",
+        "polygon-ecosystem-token": "matic",
+      };
+      for (const it of data) {
+        const k = mapId[String(it?.id ?? "")] as string;
+        const row = byKey.get(k);
+        if (!row) continue;
+        row.price = Number(it?.current_price ?? row.price);
+        row.mcap = Number(it?.market_cap ?? row.mcap);
+        row.chg24 = Number(it?.price_change_percentage_24h ?? row.chg24);
+        const sp = it?.sparkline_in_7d?.price;
+        if (Array.isArray(sp) && sp.length >= 10) row.spark = sp.slice(-18).map((x: any) => Number(x));
+      }
+    }
+  } catch {
+  }
+
+  const stooqMap: Record<string, string> = {
+    aapl: "aapl.us",
+    msft: "msft.us",
+    nvda: "nvda.us",
+    tsla: "tsla.us",
+    amzn: "amzn.us",
+    googl: "googl.us",
+    meta: "meta.us",
+    lmt: "lmt.us",
+    pltr: "pltr.us",
+    xom: "xom.us",
+    spx: "^spx",
+    ndx: "^ndx",
+    dji: "^dji",
+    vix: "^vix",
+    dxy: "^dxy",
+    gold: "xauusd",
+    silver: "xagusd",
+    wti: "cl.f",
+    natgas: "ng.f",
+    copper: "hg.f",
+  };
+
+  const fetchStooqClose = async (code: string): Promise<number | null> => {
+    const url = `https://stooq.com/q/l/?s=${encodeURIComponent(code)}&f=sd2t2ohlcv&h&e=csv`;
+    try {
+      const csv = await fetchTextWithCorsFallback(url);
+      const lines = String(csv || "").trim().split(/\r?\n/);
+      if (lines.length < 2) return null;
+      const cols = lines[1].split(",");
+      const close = Number(cols[6]);
+      if (!Number.isFinite(close)) return null;
+      return close;
+    } catch {
+      return null;
+    }
+  };
+
+  await Promise.all(
+    next.map(async (row) => {
+      if (row.assetClass === "Crypto") return;
+      const code = stooqMap[row.key];
+      if (!code) return;
+      const close = await fetchStooqClose(code);
+      if (close == null) return;
+      const prev = row.price || close;
+      row.price = close;
+      row.chg24 = ((close - prev) / Math.max(1e-9, prev)) * 100;
+      const sp = row.spark.slice(1).concat([close]);
+      row.spark = sp;
+    })
+  );
+
+  return next;
+}
+
+function computeCategoryOverview(items: FeedItem[]) {
+  const classes: AssetClass[] = ["Equities", "Crypto", "Commodities", "Indexes", "FX"];
+  const out: Record<AssetClass, { score: number; label: ImpactDirection; count: number }> = {} as any;
+
+  for (const c of classes) out[c] = { score: 0, label: "Neutral", count: 0 };
+
+  for (const it of items) {
+    for (const im of it.impacts || []) {
+      const bucket = out[im.assetClass];
+      if (!bucket) continue;
+      bucket.count += 1;
+      if (im.direction === "Bullish") bucket.score += 1;
+      if (im.direction === "Bearish") bucket.score -= 1;
+    }
+  }
+
+  for (const c of classes) {
+    const b = out[c];
+    if (!b.count) {
+      b.label = "Neutral";
+      continue;
+    }
+    const avg = b.score / b.count;
+    b.label = avg > 0.18 ? "Bullish" : avg < -0.18 ? "Bearish" : "Neutral";
+  }
+
+  return out;
+}
+
+export default function Page() {
+  const [items, setItems] = useState<FeedItem[]>(() => makeDummyFeed());
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [q, setQ] = useState<string>("");
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [selectedClass, setSelectedClass] = useState<AssetClass | null>(null);
+  const [sortBy, setSortBy] = useState<"recency" | "severity">("recency");
+
+  const [quotes, setQuotes] = useState<QuoteRow[]>(() => makeDemoQuotes());
+  const [quotesStatus, setQuotesStatus] = useState<"live" | "demo" | "loading">("demo");
+
+  useEffect(() => {
+    try {
+      runSelfTests();
+    } catch {
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function tick() {
+      try {
+        setQuotesStatus((s) => (s === "loading" ? s : "loading"));
+        const next = await fetchLiveQuotes(quotes);
+        if (!cancelled) {
+          setQuotes(next);
+          setQuotesStatus("live");
+        }
+      } catch {
+        if (!cancelled) setQuotesStatus("demo");
+      }
+    }
+    tick();
+    const id = setInterval(tick, 45000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [quotes]);
+
+  const filteredItems = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    let out = items.slice();
+
+    if (needle) {
+      out = out.filter((it) => (it.text || "").toLowerCase().includes(needle));
+    }
+
+    if (selectedCountry) {
+      out = out.filter((it) => it.country === selectedCountry);
+    }
+
+    if (selectedClass) {
+      out = out.filter((it) => (it.impacts || []).some((im) => im.assetClass === selectedClass));
+    }
+
+    out.sort((a, b) => {
+      if (sortBy === "severity") return (b.severity ?? 0) - (a.severity ?? 0);
+      return new Date(b.ts).getTime() - new Date(a.ts).getTime();
+    });
+
+    return out;
+  }, [items, q, selectedCountry, selectedClass, sortBy]);
+
+  const overview = useMemo(() => computeCategoryOverview(items), [items]);
+
+  const relevantQuoteKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const it of filteredItems.slice(0, 30)) {
+      for (const im of it.impacts || []) {
+        const k = im.asset.toLowerCase();
+        if (k.includes("gold")) keys.add("gold");
+        if (k.includes("silver")) keys.add("silver");
+        if (k.includes("oil")) keys.add("wti");
+        if (k.includes("btc")) keys.add("btc");
+        if (k.includes("equities")) keys.add("spx");
+        if (k.includes("usd")) keys.add("dxy");
+        if (k.includes("treasuries")) keys.add("vix");
+        if (k.includes("cyber")) keys.add("nvda");
+      }
+    }
+    if (!keys.size) {
+      ["spx", "dxy", "gold", "silver", "wti", "btc"].forEach((k) => keys.add(k));
+    }
+    return keys;
+  }, [filteredItems]);
+
+  const marketRows = useMemo(() => {
+    const rows = quotes.slice();
+    rows.sort((a, b) => {
+      const ar = relevantQuoteKeys.has(a.key) ? 0 : 1;
+      const br = relevantQuoteKeys.has(b.key) ? 0 : 1;
+      if (ar !== br) return ar - br;
+      if (selectedClass && a.assetClass !== selectedClass && b.assetClass === selectedClass) return 1;
+      if (selectedClass && b.assetClass !== selectedClass && a.assetClass === selectedClass) return -1;
+      return Math.abs(b.mcap) - Math.abs(a.mcap);
+    });
+    return rows;
+  }, [quotes, relevantQuoteKeys, selectedClass]);
+
+  const masterScrollRef = useRef<HTMLDivElement | null>(null);
+
+  const toggleExpand = (id: string) => {
+    setExpandedId((cur) => (cur === id ? null : id));
+  };
+
+  const toggleCountry = (country: string) => {
+    setSelectedCountry((cur) => (cur === country ? null : country));
+    setExpandedId(null);
+    if (masterScrollRef.current) masterScrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const toggleClass = (cls: AssetClass) => {
+    setSelectedClass((cur) => (cur === cls ? null : cls));
+    setExpandedId(null);
+    if (masterScrollRef.current) masterScrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const clearAll = () => {
+    setSelectedCountry(null);
+    setSelectedClass(null);
+    setExpandedId(null);
+  };
+
+  return (
+    <div className="min-h-screen w-full bg-[#070b12] text-white">
+      <style>{`
+        .no-scrollbar::-webkit-scrollbar{width:0;height:0}
+        .no-scrollbar{scrollbar-width:none;-ms-overflow-style:none}
+      `}</style>
+
+      <div className="sticky top-0 z-30 border-b border-white/10 bg-[#070b12]/90 backdrop-blur">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+              <img
+                src={SISTINE_LOGO_DATA_URI}
+                alt="Sistine Research"
+                className="h-full w-full object-contain"
+                draggable={false}
+              />
+            </div>
+            <div className="leading-tight">
+              <div className="text-sm font-semibold tracking-wide">Sistine Research</div>
+              <div className="text-[11px] text-white/55">Sistine.ai • Master feed + market board</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="hidden items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 md:flex">
+              <Search className="h-4 w-4 text-white/55" />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search tweets…"
+                className="w-[360px] bg-transparent text-sm outline-none placeholder:text-white/35"
+              />
+            </div>
+            <button
+              onClick={() => setItems(makeDummyFeed())}
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70 hover:bg-white/10"
+            >
+              <RefreshCcw className="h-4 w-4" />
+              Refresh
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="mx-auto grid max-w-[1600px] grid-cols-12 gap-4 px-3 py-3">
+        <div className="col-span-12 flex min-h-0 flex-col gap-3 md:col-span-4 lg:col-span-4">
+          <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/5">
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-white/70" />
+                <div className="text-sm font-semibold">Map</div>
+              </div>
+              <div className="text-[11px] text-white/55">click country to filter</div>
+            </div>
+            <div className="h-[320px]">
+              <SvgWorldMap items={items} selectedCountry={selectedCountry} onCountryToggle={toggleCountry} />
+            </div>
+            {(selectedCountry || selectedClass) && (
+              <div className="flex items-center justify-between border-t border-white/10 px-4 py-2 text-[11px] text-white/70">
+                <div className="truncate">
+                  {selectedCountry ? `Country: ${selectedCountry}` : ""}
+                  {selectedCountry && selectedClass ? " • " : ""}
+                  {selectedClass ? `Asset: ${selectedClass}` : ""}
+                </div>
+                <button
+                  onClick={clearAll}
+                  className="rounded-xl border border-white/10 bg-white/5 px-2 py-1 hover:bg-white/10"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/5">
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-white/70" />
+                <div className="text-sm font-semibold">Market Board</div>
+              </div>
+              <div className="text-[11px] text-white/55">quotes: {quotesStatus}</div>
+            </div>
+
+            <div className="max-h-[calc(100vh-480px)] min-h-[320px] overflow-auto overflow-x-hidden no-scrollbar">
+              <div className="sticky top-0 z-10 grid grid-cols-[24px_minmax(130px,1fr)_60px_72px_78px_74px] items-center gap-2 border-b border-white/10 bg-[#070b12]/90 pl-4 pr-5 h-9 text-[10px] text-white/55 backdrop-blur">
+                <div />
+                <div>Asset</div>
+                <div>Class</div>
+                <div className="text-right pl-1">Price</div>
+                <div className="text-right">Mkt Cap</div>
+                <div className="text-right pr-4">24h</div>
+              </div>
+
+              <div className="divide-y divide-white/10">
+                {marketRows.map((r) => {
+                  const chgTone =
+                    r.chg24 > 0.05 ? "text-emerald-200" : r.chg24 < -0.05 ? "text-rose-200" : "text-white/70";
+                  const img = logoDataUrl(r.symbol);
+                  return (
+                    <div
+                      key={r.key}
+                      className="grid grid-cols-[24px_minmax(130px,1fr)_60px_72px_78px_74px] items-center gap-2 pl-4 pr-5 h-10 hover:bg-white/5"
+                    >
+                      <img src={img} alt={r.symbol} className="h-6 w-6 rounded-lg border border-white/10" />
+
+                      <div className="min-w-0 overflow-hidden">
+                        <div className="flex min-w-0 items-baseline gap-2">
+                          <div className="truncate text-[12px] font-semibold text-white/90">{r.name}</div>
+                          <div className="shrink-0 text-[10px] font-semibold text-white/55">{r.symbol}</div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className={`inline-flex rounded-full border px-1.5 py-0.5 text-[10px] ${classBadge(r.assetClass)}`}>{r.assetClass}</span>
+                      </div>
+
+                      <div className="text-right pl-1 text-[12px] font-semibold text-white/90 tabular-nums">{fmtPrice(r.price)}</div>
+                      <div className="text-right text-[11px] text-white/70 tabular-nums">{fmtMoney(r.mcap)}</div>
+                      <div className={`text-right pr-4 text-[11px] font-semibold tabular-nums ${chgTone}`}>{fmtPct(r.chg24)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-span-12 flex min-h-0 flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/5 md:col-span-8 lg:col-span-8">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <Flame className="h-4 w-4 text-white/70" />
+              <div className="text-sm font-semibold">Master feed</div>
+              <div className="text-[11px] text-white/55">@FirstSquawk (dummy)</div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] text-white/70">
+                Sort
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="ml-2 bg-transparent text-[11px] text-white/85 outline-none"
+                >
+                  <option value="recency">Recency</option>
+                  <option value="severity">Impact</option>
+                </select>
+              </div>
+
+              <div className="md:hidden flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
+                <Search className="h-4 w-4 text-white/55" />
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search…"
+                  className="w-[160px] bg-transparent text-sm outline-none placeholder:text-white/35"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-b border-white/10 px-4 py-3">
+            <div className="text-xs font-semibold text-white/85">Asset Impact Overview</div>
+            <div className="mt-2 grid gap-2 md:grid-cols-5">
+              {(["Equities", "Crypto", "Commodities", "Indexes", "FX"] as AssetClass[]).map((cls) => {
+                const b = overview[cls];
+                const active = selectedClass === cls;
+                const tone = directionBadge(b.label);
+                return (
+                  <button
+                    key={cls}
+                    onClick={() => toggleClass(cls)}
+                    className={
+                      "rounded-2xl border px-3 py-2 text-left transition " +
+                      (active ? "border-white/25 bg-white/10" : "border-white/10 bg-white/5 hover:bg-white/10")
+                    }
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-semibold text-white/85">{cls}</span>
+                      <span className={`rounded-full border px-2 py-0.5 text-[10px] ${tone}`}>{b.label}</span>
+                    </div>
+                    <div className="mt-1 text-[10px] text-white/55">Signals: {b.count}</div>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-2 text-[11px] text-white/55">
+              Overview is computed from <span className="text-white/75">all</span> items (not affected by your current filters).
+            </div>
+          </div>
+
+          <div ref={masterScrollRef} className="flex-1 overflow-auto p-2 no-scrollbar">
+            <div className="grid gap-2">
+              {filteredItems.map((it) => {
+                const expanded = expandedId === it.id;
+                const hint = it.country ? it.country : "Global";
+                return (
+                  <div key={it.id} className="rounded-3xl border border-white/10 bg-black/20">
+                    <button onClick={() => toggleExpand(it.id)} className="w-full rounded-3xl px-3 py-2 text-left hover:bg-white/5">
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/5">
+                          <span className="text-[12px] font-semibold text-white/85">@</span>
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="text-xs font-semibold text-white/90">{it.sourceName}</div>
+                            <div className="text-[11px] text-white/55">@{it.handle}</div>
+                            <div className="ml-auto shrink-0 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-white/70">
+                              {timeAgoLabel(it.ts)}
+                            </div>
+                          </div>
+
+                          <div className="mt-1 line-clamp-2 text-[12px] leading-5 text-white/85">{it.text}</div>
+
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-white/70">{hint}</span>
+                            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-white/70">
+                              Impact: {Math.round((it.severity ?? 0.3) * 100)}%
+                            </span>
+
+                            {(it.impacts || []).slice(0, 3).map((im) => (
+                              <span key={`${it.id}-${im.asset}`} className={`rounded-full border px-2 py-0.5 text-[10px] ${directionBadge(im.direction)}`}>
+                                {im.asset}: {im.direction}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+
+                    {expanded && (
+                      <div className="border-t border-white/10 px-4 py-3">
+                        <div className="grid gap-3">
+                          <div className="flex items-center justify-between">
+                            <div className="text-[11px] font-semibold text-white/85">Impact breakdown</div>
+                            {it.url && (
+                              <a
+                                href={it.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] text-white/75 hover:bg-white/10"
+                              >
+                                Open source <ExternalLink className="h-4 w-4" />
+                              </a>
+                            )}
+                          </div>
+
+                          <div className="grid gap-2 md:grid-cols-3">
+                            {(it.impacts || []).slice(0, 3).map((im) => (
+                              <div key={`${it.id}-im-${im.asset}`} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="truncate text-[12px] font-semibold text-white/90">{im.asset}</div>
+                                  <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] ${directionBadge(im.direction)}`}>{im.direction}</span>
+                                </div>
+                                <div className="mt-1 text-[11px] text-white/70">{im.rationale}</div>
+                                <div className="mt-2 text-[10px] text-white/55">Class: {im.assetClass}</div>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="text-[11px] text-white/55">Click the tile again to collapse. Signals are heuristic.</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {filteredItems.length === 0 && (
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-5 text-sm text-white/70">No items match your filters.</div>
+              )}
+
+              <div className="h-4" />
+            </div>
+          </div>
+
+          <div className="border-t border-white/10 px-4 py-3 text-[11px] text-white/55">
+            This preview uses dummy tweets. Live X/Twitter ingestion will be added via a server route on Vercel.
+          </div>
+        </div>
+      </div>
+
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#070b12] to-transparent" />
+    </div>
+  );
+}

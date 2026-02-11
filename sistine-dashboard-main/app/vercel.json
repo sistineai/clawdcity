@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/generate-research",
+      "schedule": "*/5 * * * *"
+    }
+  ],
+  "functions": {
+    "app/api/analyzed-news/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/cron/generate-research/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}

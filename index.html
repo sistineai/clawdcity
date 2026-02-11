@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Gradient Fields — Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>html,body{margin:0;height:100%;background:#111}canvas{display:block;margin:auto}</style>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.2/lib/p5.min.js"></script>
+  <script>
+    // Read ?hash=0x... or generate one for local testing
+    function getHash() {
+      const url = new URL(window.location.href);
+      const h = url.searchParams.get("hash");
+      if (h && /^0x[a-fA-F0-9]{64}$/.test(h)) return h;
+      // dev fallback
+      const rnd = crypto.getRandomValues(new Uint8Array(32));
+      return "0x" + Array.from(rnd).map(b=>b.toString(16).padStart(2,"0")).join("");
+    }
+
+    // PRNG from hash (mulberry32-ish)
+    function rngFromHash(hash) {
+      let h = BigInt(hash);
+      let s = Number(h % 4294967291n) >>> 0;
+      return function() {
+        s += 0x6D2B79F5; s >>>= 0;
+        let t = Math.imul(s ^ s>>>15, 1 | s);
+        t ^= t + Math.imul(t ^ t>>>7, 61 | t);
+        return ((t ^ t>>>14) >>> 0) / 4294967296;
+      }
+    }
+
+    // Pick from array
+    const pick = (r, arr) => arr[Math.floor(r()*arr.length)];
+
+    let R, HASH, W=1400, H=1800; // portrait
+    let palette;
+
+    function setup(){
+      HASH = getHash();
+      R = rngFromHash(HASH);
+      createCanvas(W, H);
+      pixelDensity(2);
+      noLoop();
+
+      // palettes (curated)
+      const palettes = [
+        ["#0e0f1a","#193c7c","#2e8bc0","#f1f1f1","#ffb703","#fb8500"],
+        ["#0d0d0d","#1f6f78","#99d5c9","#f1f1f1","#f05454","#30475e"],
+        ["#16161a","#7f5af0","#2cb67d","#94a1b2","#fffffe","#ef4565"],
+        ["#111827","#dc2626","#f59e0b","#10b981","#3b82f6","#f3f4f6"]
+      ];
+      palette = pick(R, palettes);
+
+      // background
+      background(pick(R, palette));
+
+      // flow field params (feel free to tweak)
+      const cell = Math.floor(24 + R()*20);     // grid cell size
+      const cols = Math.ceil(W / cell);
+      const rows = Math.ceil(H / cell);
+      const zSpeed = 0.0005 + R()*0.001;
+      const layers = 3 + Math.floor(R()*4);
+      const density = 8000 + Math.floor(R()*16000);
+      const strokeBase = 0.3 + R()*0.7;
+
+      // light paper texture
+      push();
+      noStroke();
+      for(let i=0;i<1000;i++){
+        const x = R()*W, y = R()*H, a = 3 + R()*10;
+        fill(255, 5);
+        ellipse(x,y,a,a);
+      }
+      pop();
+
+      // draw multiple layered ribbon fields
+      for(let L=0; L<layers; L++){
+        const col = pick(R, palette);
+        const alpha = 70 + R()*70;
+        const jitter = 0.2 + R()*0.6;
+        const step = 0.6 + R()*1.8;
+        const len = 80 + Math.floor(R()*320);
+
+        strokeWeight(strokeBase + R()*1.6);
+        stroke(color(col + hex(Math.floor(alpha).toString(16).padStart(2,'0')))); // rgba via hex alpha
+
+        for(let i=0;i<density;i++){
+          let x = R()*W, y = R()*H;
+          beginShape();
+          noFill();
+          for(let k=0;k<len;k++){
+            const a = flowAngle(x, y, L*1000, cols, rows, cell, zSpeed);
+            // Drift along field
+            x += Math.cos(a)*step + (R()-0.5)*jitter;
+            y += Math.sin(a)*step + (R()-0.5)*jitter;
+
+            // softly clip
+            if(x< -50||x>W+50||y< -50||y>H+50) break;
+
+            vertex(x,y);
+          }
+          endShape();
+        }
+      }
+
+      // thin contour lines on top
+      strokeWeight(0.4);
+      stroke(255, 10);
+      noFill();
+      const rings = 12 + Math.floor(R()*24);
+      for(let r=0;r<rings;r++){
+        const cx = R()*W, cy = R()*H, rad = 40 + R()*500;
+        ellipse(cx, cy, rad*2, rad*2);
+      }
+
+      // title plate (for previews only; remove for final)
+      // drawLabel(HASH);
+    }
+
+    function flowAngle(x, y, z, cols, rows, cell, zSpeed){
+      // coherent direction using layered trig (fast & pretty)
+      const nx = x / (cols*cell) * TWO_PI;
+      const ny = y / (rows*cell) * TWO_PI;
+      const t = frameCount * zSpeed;
+      const v = Math.sin(nx+z*0.01) + Math.cos(ny*0.9 - z*0.01) + Math.sin((nx+ny)*0.7 + t);
+      return (v * 1.5) % TWO_PI;
+    }
+
+    function keyPressed(){
+      if(key === 's' || key === 'S'){
+        saveCanvas(`gradient_fields_${HASH.slice(2,10)}`, 'png');
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/generate-research",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/auto-tweet",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/daily-newsletter",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/weekly-thread",
+      "schedule": "0 15 * * 0"
+    }
+  ],
+  "functions": {
+    "app/api/analyzed-news/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/cron/generate-research/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/cron/auto-tweet/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/cron/daily-newsletter/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/cron/weekly-thread/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}

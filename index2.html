@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Seeded Perlin Flow Particles</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    html,body{margin:0;height:100%;background:#0b0b10}
+    canvas{display:block}
+    .ui{
+      position:fixed;left:12px;top:12px;display:flex;gap:8px;flex-wrap:wrap;
+      font:14px/1.2 system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#fff;z-index:10
+    }
+    .ui button,.ui select{
+      background:#1a1a27;border:1px solid #34344a;color:#fff;border-radius:10px;
+      padding:8px 10px;cursor:pointer
+    }
+    .ui .pill{opacity:.8;padding:6px 8px;border-radius:10px;border:1px solid #34344a}
+  </style>
+</head>
+<body>
+  <div class="ui">
+    <button id="toggle">Pause</button>
+    <button id="reseed">Reseed</button>
+    <select id="palette"></select>
+    <span class="pill" id="seedlabel">seed: …</span>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.2/lib/p5.min.js"></script>
+  <script>
+    // ---------- seed helpers ----------
+    function getHash(){
+      const url = new URL(window.location.href);
+      const h = url.searchParams.get("hash");
+      if (h && /^0x[a-fA-F0-9]{64}$/.test(h)) return h;
+      const rnd = crypto.getRandomValues(new Uint8Array(32));
+      return "0x" + Array.from(rnd).map(b=>b.toString(16).padStart(2,"0")).join("");
+    }
+    function seedFromHash(hx){
+      let acc = 0>>>0;
+      for (let i=2;i<hx.length;i+=8) acc ^= parseInt(hx.slice(i,i+8),16)>>>0;
+      return acc>>>0;
+    }
+    function rngFromHash(hex){
+      let h = BigInt(hex);
+      let s = Number((h ^ (h>>64n)) % 4294967291n)>>>0;
+      return function(){
+        s += 0x6D2B79F5; s >>>= 0;        // <-- fixed
+        let t = Math.imul(s ^ s>>>15, 1 | s);
+        t ^= t + Math.imul(t ^ t>>>7, 61 | t);
+        return ((t ^ t>>>14)>>>0)/4294967296;
+      }
+    }
+
+    // ---------- palettes ----------
+    const PALETTES = [
+      { name:"Aurora (purple/blue/white)", cols:["#45217C","#0799F2","#ffffff"], bg:"#150832" },
+      { name:"Ember", cols:["#ff6b6b","#ffd166","#ffffff"], bg:"#1a0e0e" },
+      { name:"Seafoam", cols:["#00c2a8","#2f6db0","#e6fff7"], bg:"#06131a" },
+      { name:"Neon Dusk", cols:["#ff00e5","#00f0ff","#ffffff"], bg:"#0b0b10" },
+      { name:"Sand & Sky", cols:["#c57b57","#2a9d8f","#f1f1f1"], bg:"#0e0f1a" }
+    ];
+
+    // ---------- globals ----------
+    let HASH, R, palIndex = 0;
+    const groups = [];
+    let running = true;
+    let noiseScale = 800;
+    let nums = 240;
+
+    // UI refs
+    let seedLabel, paletteSelect, toggleBtn, reseedBtn;
+
+    class Particle {
+      constructor(x,y,speed){
+        this.pos = createVector(x,y);
+        this.speed = speed;
+        this.dir = createVector(0,0);
+        this.vel = createVector(0,0);
+      }
+      move(){
+        const angle = noise(this.pos.x/noiseScale, this.pos.y/noiseScale)*TWO_PI*noiseScale;
+        this.dir.x = Math.cos(angle);
+        this.dir.y = Math.sin(angle);
+        this.vel.set(this.dir).mult(this.speed);
+        this.pos.add(this.vel);
+      }
+      checkEdge(){
+        if(this.pos.x>width || this.pos.x<0 || this.pos.y>height || this.pos.y<0){
+          this.pos.x = random(50, width-50);
+          this.pos.y = random(50, height-50);
+        }
+      }
+      display(r){ ellipse(this.pos.x, this.pos.y, r, r); }
+    }
+
+    function setup(){
+      // Get UI refs BEFORE using them
+      toggleBtn   = document.getElementById("toggle");
+      reseedBtn   = document.getElementById("reseed");
+      seedLabel   = document.getElementById("seedlabel");
+      paletteSelect = document.getElementById("palette");
+
+      // Populate palette dropdown
+      PALETTES.forEach((p,i)=>{
+        const opt = document.createElement("option");
+        opt.value = i; opt.textContent = p.name;
+        paletteSelect.appendChild(opt);
+      });
+      paletteSelect.value = palIndex;
+
+      // Seed and canvas
+      HASH = getHash();
+      applySeed(HASH);                      // safe now that UI exists
+      createCanvas(windowWidth, windowHeight);
+      pixelDensity(2);
+
+      // UI handlers
+      toggleBtn.onclick = ()=>{
+        running=!running; toggleBtn.textContent = running?"Pause":"Resume";
+        if (running) loop(); else noLoop();
+      };
+      reseedBtn.onclick = ()=>{
+        const newHash = getHash();
+        setSeedInURL(newHash);
+        hardReset(newHash, palIndex);
+      };
+      paletteSelect.onchange = (e)=>{ palIndex = +e.target.value; hardReset(HASH, palIndex); };
+
+      hardReset(HASH, palIndex);
+    }
+
+    function setSeedInURL(h){
+      const u = new URL(window.location.href);
+      u.searchParams.set("hash", h);
+      history.replaceState(null,"",u);
+    }
+
+    function applySeed(h){
+      R = rngFromHash(h);
+      const s = seedFromHash(h);
+      noiseSeed(s);
+      randomSeed(s);
+      if (seedLabel) seedLabel.textContent = "seed: "+h.slice(0,10)+"…";
+      nums = 180 + Math.floor(R()*180);
+      noiseScale = 600 + Math.floor(R()*900);
+    }
+
+    function hardReset(h, palIdx){
+      applySeed(h);
+      background(PALETTES[palIdx].bg);
+      groups.length = 0;
+
+      const cols = PALETTES[palIdx].cols;
+      const speeds = [0.35, 0.45, 0.6].map(v=>v*(0.85+R()*0.3));
+      for (let g=0; g<3; g++){
+        const particles = [];
+        for (let i=0;i<nums;i++){
+          particles.push(new Particle(random(0,width), random(0,height), speeds[g]));
+        }
+        groups.push({ color: cols[g%cols.length], particles });
+      }
+      drawFade(1.0);
+      if (!running) { running=true; toggleBtn.textContent="Pause"; loop(); }
+    }
+
+    function draw(){
+      drawFade(0.06);
+      noStroke();
+      smooth();
+      groups.forEach(group=>{
+        const particles = group.particles;
+        for (let i=0;i<particles.length;i++){
+          const p = particles[i];
+          const radius = map(i, 0, particles.length, 0.8, 2.2);
+          const alpha  = map(i, 0, particles.length, 10, 220);
+          const c = color(group.color); c.setAlpha(alpha);
+          fill(c);
+          p.move(); p.display(radius); p.checkEdge();
+        }
+      });
+    }
+
+    function drawFade(alpha){
+      noStroke();
+      const c = color(PALETTES[palIndex].bg);
+      c.setAlpha(alpha*255);
+      fill(c);
+      rect(0,0,width,height);
+    }
+
+    function windowResized(){
+      resizeCanvas(windowWidth, windowHeight);
+      background(PALETTES[palIndex].bg);
+    }
+
+    function keyPressed(){
+      if (key==='s' || key==='S') saveCanvas(`perlin_flow_${HASH.slice(2,10)}`, 'png');
+      if (key===' ') { running=!running; toggleBtn.textContent = running?"Pause":"Resume"; if (running) loop(); else noLoop(); }
+    }
+  </script>
+</body>
+</html>
+

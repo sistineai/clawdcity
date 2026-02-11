@@ -1,0 +1,161 @@
+<script>
+// ---------- Export IPFS bundle: html + images + metadata (asks for CID) ----------
+async function exportIPFSBundle(count=5){
+  const wasRunning=running; if(wasRunning){ noLoop(); running=false; toggleBtn.textContent="Resume"; }
+  progressEl.style.display="inline-block"; progressEl.textContent=`Bundling… 0/${count}`;
+
+  // 1) Ask for CID (optional)
+  let input = prompt(
+    "Enter the IPFS root CID for this bundle (bafy... or Qm...).\nLeave blank to keep CID_PLACEHOLDER:",
+    localStorage.getItem("lastCID") || ""
+  );
+  let CID = "CID_PLACEHOLDER";
+  if (typeof input === "string") {
+    input = input.trim();
+    if (input) {
+      // Very light validation for common CID formats
+      const looksCID = /^((bafy)[a-z0-9]+|(Qm)[1-9A-HJ-NP-Za-km-z]{44,})$/.test(input);
+      if (looksCID) {
+        CID = input;
+        localStorage.setItem("lastCID", CID);
+      } else {
+        alert("That does not look like a valid CID. Using CID_PLACEHOLDER instead.");
+      }
+    }
+  }
+
+  const zip=new JSZip();
+  const htmlFolder=zip.folder("html");
+  const imagesFolder=zip.folder("images");
+  const metadataFolder=zip.folder("metadata");
+
+  // include p5 locally for token HTMLs (same as before)
+  const p5Code=await fetchP5();
+  if(!p5Code){
+    alert("Couldn't download p5.min.js for the bundle. Check your internet and try again.");
+    progressEl.style.display="none";
+    return;
+  }
+  htmlFolder.file("p5.min.js", p5Code);
+
+  const records=[];
+
+  for(let i=0;i<count;i++){
+    // Randomize & render frames for preview
+    const seed=getHash(); HASH=seed; setSeedInURL(seed);
+    const prev=useSeeded; useSeeded=false; randomizeAllTraits([0.2,2.5]); hardReset(seed,palIndex); useSeeded=prev;
+
+    const minFrames=360, maxFrames=1200;
+    const t=clamp((TRAITS.maturity-0.2)/(2.5-0.2),0,1);
+    const frames=Math.round(minFrames+t*(maxFrames-minFrames));
+    for(let f=0;f<frames;f++){ stepOnce(); if(f%60===0) await new Promise(r=>requestAnimationFrame(r)); }
+
+    // Preview PNG
+    const pngBlob=await new Promise(res=>CANVAS.toBlob(res,"image/png"));
+    const idx=String(i+1).padStart(3,"0");
+    const stem=`token_${idx}`;
+    imagesFolder.file(`${stem}.png`, pngBlob);
+
+    // HTML artwork
+    const localPal=PALETTES[palIndex];
+    const config={
+      name:`Perlin Flow — #${i+1}`,
+      fileStem:stem,
+      seed,
+      palette:{name:localPal.name, cols:localPal.cols, bg:localPal.bg},
+      density:TRAITS.density,
+      noise:TRAITS.noise, noiseLabel:TRAITS.noiseLabel,
+      trackWidth:TRAITS.trackWidth, trackWidthLabel:TRAITS.trackWidthLabel,
+      curvature:TRAITS.curvature, curvatureLabel:TRAITS.curvatureLabel,
+      speed:TRAITS.speed, speedLabel:TRAITS.speedLabel,
+      trace:TRAITS.trace,
+      noiseScale, particlesPerBand:nums,
+      canvas:{width:1600,height:1600}
+    };
+    const html=buildStandaloneHTML(config);
+    htmlFolder.file(`${stem}.html`, html);
+
+    // Metadata JSON with *actual* CID (or CID_PLACEHOLDER if none/invalid entered)
+    const meta={
+      name: `Perlin Flow #${i+1}`,
+      description: "Live, interactive generative artwork. Runs fully in-browser via p5.js.",
+      image: `ipfs://${CID}/images/${stem}.png`,
+      animation_url: `ipfs://${CID}/html/${stem}.html`,
+      attributes: [
+        {"trait_type":"Palette","value":localPal.name},
+        {"trait_type":"Density","value":String(TRAITS.density)},
+        {"trait_type":"Noise","value":TRAITS.noiseLabel},
+        {"trait_type":"Curvature","value":TRAITS.curvatureLabel},
+        {"trait_type":"Width","value":TRAITS.trackWidthLabel},
+        {"trait_type":"Speed","value":TRAITS.speedLabel},
+        {"trait_type":"Trace","value":TRAITS.trace},
+        {"trait_type":"Maturity","value":String(TRAITS.maturity)},
+        {"trait_type":"Seed","value":seed}
+      ],
+      compiler: "Perlin Flow Generator v1.0"
+    };
+    metadataFolder.file(`${i+1}.json`, JSON.stringify(meta, null, 2));
+
+    const {densityUsed, particlesPerBandUsed} = getPerfAdjustedCounts();
+    records.push({
+      index:i+1, stem, seed, palette:localPal.name,
+      densitySeeded:TRAITS.density, densityUsed,
+      noiseLabel:TRAITS.noiseLabel, noise:TRAITS.noise,
+      widthLabel:TRAITS.trackWidthLabel, width:TRAITS.trackWidth,
+      curvatureLabel:TRAITS.curvatureLabel, curvature:TRAITS.curvature,
+      speedLabel:TRAITS.speedLabel, speed:TRAITS.speed,
+      trace:TRAITS.trace, maturity:TRAITS.maturity,
+      frames, particlesPerBandSeeded:nums, particlesPerBandUsed,
+      noiseScale, CIDUsed: CID
+    });
+
+    progressEl.textContent=`Bundling… ${i+1}/${count}`;
+    await new Promise(r=>setTimeout(r,10));
+  }
+
+  // README reflects whether a real CID was inserted
+  const readme = (CID==="CID_PLACEHOLDER")
+    ? `IPFS BUNDLE
+
+This ZIP contains:
+- html/ : standalone HTML artworks (with local p5.min.js)
+- images/ : preview PNGs (one per token)
+- metadata/ : JSON metadata that still contain CID_PLACEHOLDER.
+
+NEXT:
+1) Upload the entire folder to IPFS (Pinata, web3.storage, NFT.storage).
+2) Get the root CID (e.g. bafy...).
+3) Replace CID_PLACEHOLDER with your CID in metadata/*.json (or re-export and enter the CID when prompted).
+4) Mint using ipfs://<CID>/metadata/1.json, etc.`
+    : `IPFS BUNDLE
+
+This ZIP contains:
+- html/ : standalone HTML artworks (with local p5.min.js)
+- images/ : preview PNGs (one per token)
+- metadata/ : JSON metadata already pointing to your CID: ipfs://${CID}/...
+
+DONE:
+• You can mint now using these metadata files:
+  - 1.json → ipfs://${CID}/metadata/1.json
+  - 2.json → ipfs://${CID}/metadata/2.json
+  - ...
+`;
+
+  zip.file("README.txt", readme);
+  zip.file("CID.txt", CID); // convenience crumb
+
+  const jsonText=JSON.stringify(records,null,2); zip.file("manifest.json",jsonText);
+  const headers=["index","stem","seed","palette","densitySeeded","densityUsed","noiseLabel","noise","widthLabel","width","curvatureLabel","curvature","speedLabel","speed","trace","maturity","frames","particlesPerBandSeeded","particlesPerBandUsed","noiseScale","CIDUsed"];
+  const csvLines=[headers.join(",")];
+  for(const r of records){
+    csvLines.push([r.index,r.stem,r.seed,r.palette,r.densitySeeded,r.densityUsed,r.noiseLabel,r.noise,r.widthLabel,r.width,r.curvatureLabel,r.curvature,r.speedLabel,r.speed,r.trace,r.maturity,r.frames,r.particlesPerBandSeeded,r.particlesPerBandUsed,r.noiseScale,r.CIDUsed].map(csvEscape).join(","));
+  }
+  zip.file("manifest.csv",csvLines.join("\n"));
+
+  const blob=await zip.generateAsync({type:"blob"});
+  saveAs(blob,`ipfs_bundle_${Date.now()}.zip`);
+
+  progressEl.style.display="none";
+  if(wasRunning){ loop(); running=true; toggleBtn.textContent="Pause"; }
+}
+</script>

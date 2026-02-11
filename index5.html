@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Perlin Flow — Mint-Ready (HTML + PNG + Metadata)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    html,body{margin:0;height:100%;background:#0b0b10}
+    canvas{display:block}
+    .ui{
+      position:fixed;left:12px;top:12px;display:flex;gap:8px;flex-wrap:wrap;
+      font:14px/1.2 system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#fff;z-index:10
+    }
+    .ui button,.ui select,.ui label,.ui input{
+      background:#1a1a27;border:1px solid #34344a;color:#fff;border-radius:10px;
+      padding:8px 10px;cursor:pointer
+    }
+    .ui input,.ui select{width:120px;padding:6px 10px}
+    .pill{opacity:.9;padding:6px 8px;border-radius:10px;border:1px solid #34344a;background:#13131d}
+    .stack{display:flex;flex-direction:column;gap:4px}
+    .stack small{opacity:.75}
+    .checkbox{display:flex;align-items:center;gap:6px;padding:8px 10px}
+    .checkbox input{margin:0}
+    .field{display:flex;align-items:center;gap:6px}
+    .field label{background:transparent;border:none;padding:0;cursor:default;opacity:.8}
+    .disabled{opacity:.5;pointer-events:none}
+    #p5loadfail{
+      position:fixed;left:12px;bottom:12px;background:#2a1b1b;border:1px solid #5c2f2f;color:#ffd7d7;
+      padding:10px 12px;border-radius:10px;display:none;z-index:20
+    }
+    .mini{width:70px}
+  </style>
+
+  <!-- Needed for PNG/ZIP exports -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+</head>
+<body>
+  <div class="ui">
+    <button id="toggle">Pause</button>
+    <button id="reseed">Reseed</button>
+    <button id="export">Export 100 PNGs</button>
+    <button id="exportHTML5">Export 5 HTML for Mint</button>
+    <button id="randomize">Randomize Traits</button>
+
+    <div class="field">
+      <label for="ipfsCount">Count</label>
+      <input id="ipfsCount" class="mini" type="number" min="1" max="50" step="1" value="5"/>
+    </div>
+    <button id="exportIPFS">Export IPFS Bundle</button>
+    <button id="exportMetaOnly">Metadata Only (CID)</button>
+    <button id="rebuildBundle">Rebuild Exact Bundle</button>
+
+    <select id="palette"></select>
+
+    <!-- Manual controls -->
+    <div class="field"><label for="densityInput">density</label><input id="densityInput" type="number" min="1" max="12" step="1"/></div>
+
+    <div class="field">
+      <label for="noiseSelect">noise</label>
+      <select id="noiseSelect">
+        <option value="high">high (50)</option>
+        <option value="medium" selected>medium (20)</option>
+        <option value="low">low (2)</option>
+        <option value="none">none (0)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="widthSelect">width</label>
+      <select id="widthSelect">
+        <option value="thin">thin (0.35)</option>
+        <option value="medium" selected>medium (1.2)</option>
+        <option value="thick">thick (5)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="curvatureSelect">curvature</label>
+      <select id="curvatureSelect">
+        <option value="high">high (50)</option>
+        <option value="medium" selected>medium (3)</option>
+        <option value="low">low (0.5)</option>
+        <option value="none">none (0)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="speedSelect">speed</label>
+      <select id="speedSelect">
+        <option value="slow">slow (1)</option>
+        <option value="medium" selected>medium (2.5)</option>
+        <option value="fast">fast (5)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="traceSelect">trace</label>
+      <select id="traceSelect">
+        <option value="full">100% (no fade)</option>
+        <option value="current" selected>Current (classic)</option>
+        <option value="none">0% (clear every frame)</option>
+      </select>
+    </div>
+
+    <label class="checkbox"><input type="checkbox" id="perfGuard" checked/> Perf guard</label>
+    <label class="checkbox"><input type="checkbox" id="useSeeded"/> Use seeded traits</label>
+
+    <div class="stack pill"><small>seed</small><span id="seedlabel">…</span></div>
+    <div class="stack pill"><small>traits</small><span id="traitslabel">—</span></div>
+    <div class="pill" id="progress" style="display:none;">Exporting… 0/100</div>
+  </div>
+
+  <div id="p5loadfail">p5.js failed to load from CDN. Check your internet or try reloading — the exporter HTMLs include p5 locally.</div>
+
+  <script>
+    // ---------- seed helpers ----------
+    function getHash(){
+      const u=new URL(window.location.href);
+      const h=u.searchParams.get("hash");
+      if(h&&/^0x[a-fA-F0-9]{64}$/.test(h))return h;
+      const r=crypto.getRandomValues(new Uint8Array(32));
+      return "0x"+Array.from(r).map(b=>b.toString(16).padStart(2,"0")).join("")
+    }
+    function seedFromHash(hx){let acc=0>>>0;for(let i=2;i<hx.length;i+=8)acc^=parseInt(hx.slice(i,i+8),16)>>>0;return acc>>>0}
+    function rngFromHash(hex){let h=BigInt(hex);let s=Number((h^(h>>64n))%4294967291n)>>>0;return function(){s+=0x6D2B79F5;s>>>=0;let t=Math.imul(s^s>>>15,1|s);t^=t+Math.imul(t^t>>>7,61|t);return((t^t>>>14)>>>0)/4294967296}}
+    const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+    const pick=(arr)=>arr[Math.floor(Math.random()*arr.length)];
+
+    // ---------- palettes (dark + light) ----------
+    const PALETTES = [
+      {name:"Aurora (purple/blue/white)",cols:["#45217C","#0799F2","#ffffff"],bg:"#150832"},
+      {name:"Ember",cols:["#ff6b6b","#ffd166","#ffffff"],bg:"#1a0e0e"},
+      {name:"Seafoam",cols:["#00c2a8","#2f6db0","#e6fff7"],bg:"#06131a"},
+      {name:"Neon Dusk",cols:["#ff00e5","#00f0ff","#ffffff"],bg:"#0b0b10"},
+      {name:"Sand & Sky",cols:["#c57b57","#2a9d8f","#f1f1f1"],bg:"#0e0f1a"},
+      {name:"Monochrome Smoke",cols:["#e5e5e5","#a8a8a8","#ffffff"],bg:"#0c0c0c"},
+      {name:"Solar Flare",cols:["#ff6a00","#ffaa00","#ffffff"],bg:"#120900"},
+      {name:"Glacier Night",cols:["#0d1b2a","#1b263b","#e0e1dd"],bg:"#05080f"},
+      {name:"Moss & Ember",cols:["#2e7d32","#ef6c00","#ffffff"],bg:"#0d0f0a"},
+      {name:"Candy Pop",cols:["#ff4d6d","#00d1ff","#ffffff"],bg:"#0b0b10"},
+      {name:"Noir Ice",cols:["#e0fbfc","#98c1d9","#3d5a80"],bg:"#0a0e14"},
+      {name:"Wild Spectrum",cols:["#ff004c","#ff8c00","#ffee00","#00e676","#00c2ff","#8e00ff","#ff00e5","#00ffa8"],bg:"#0a0a0e"},
+      {name:"Desert Mirage",cols:["#b08968","#e9c46a","#264653"],bg:"#0f0a07"},
+      {name:"Iceberry",cols:["#a0c4ff","#bdb2ff","#ffadad"],bg:"#0b1020"},
+      {name:"Jungle Bloom",cols:["#2e7d32","#81c784","#ffe082"],bg:"#08140c"},
+      {name:"Hyper Neon Six",cols:["#ff006e","#ffbe0b","#fb5607","#00f5d4","#3a86ff","#8338ec"],bg:"#07070a"},
+      {name:"Pastel Meadow Six",cols:["#a0e7e5","#b4f8c8","#fbe7c6","#ffd6e0","#c3bef0","#caffbf"],bg:"#0c0f10"},
+      {name:"Coral Reef Six",cols:["#ff6f61","#ffb88a","#ffd6a5","#8ecae6","#219ebc","#00afb9"],bg:"#071018"},
+      {name:"Autumn Grove Six",cols:["#7f5539","#b08968","#e5989b","#ffb703","#e9c46a","#2a9d8f"],bg:"#0e0b07"},
+      {name:"Nocturne Six",cols:["#0ea5e9","#22d3ee","#a78bfa","#818cf8","#34d399","#f472b6"],bg:"#050912"},
+      {name:"Retro Vapor Six",cols:["#ff71ce","#01cdfe","#05ffa1","#b967ff","#f5f7b2","#ffd6e0"],bg:"#0a0810"},
+      {name:"Cyberpastel Six",cols:["#ffd6e0","#e2f0cb","#cde7f0","#fff1a6","#d7c0ff","#c1fff2"],bg:"#0b0c10"},
+      {name:"Forest Mist Six",cols:["#2a9d8f","#264653","#8ab17d","#a7c957","#bde0fe","#cad2c5"],bg:"#090e0b"},
+      {name:"Lava Glow Six",cols:["#ff4d00","#ff7300","#ff9e00","#ffd166","#ffadad","#ff6b6b"],bg:"#120807"},
+      {name:"Aurora Borealis Six",cols:["#0ea5e9","#22d3ee","#34d399","#4ade80","#a7f3d0","#60a5fa"],bg:"#050a0e"},
+      {name:"Seaside Sunset Six",cols:["#023e8a","#0077b6","#00b4d8","#ff7b00","#ffb703","#ffd166"],bg:"#070b10"},
+      {name:"Prismatic Pop Six",cols:["#ff3cac","#784ba0","#2b86c5","#00c2ff","#00ffa8","#f9ed69"],bg:"#0a0812"},
+      {name:"Midnight Candy Six",cols:["#ff4d6d","#c77dff","#6a4c93","#3a0ca3","#00bbf9","#48cae4"],bg:"#0a0912"},
+      {name:"Citrus Orchard Six",cols:["#ffd166","#fca311","#e85d04","#90be6d","#43aa8b","#577590"],bg:"#0c1009"},
+      {name:"Steel Velvet Six",cols:["#e9ecef","#adb5bd","#6c757d","#495057","#b5179e","#7209b7"],bg:"#0b0b0c"},
+      {name:"Snow Day Light",cols:["#1e3a8a","#0284c7","#22c55e","#ef4444","#a855f7"],bg:"#ffffff"},
+      {name:"Lemon Meringue Light",cols:["#2d6a4f","#40916c","#ff6b6b","#ffd166","#1d3557"],bg:"#fffbea"},
+      {name:"Porcelain Flora",cols:["#2a9d8f","#e76f51","#e9c46a","#264653","#8ab17d","#b56576"],bg:"#f7f5f2"},
+      {name:"Sky Pastel Light",cols:["#a0c4ff","#bdb2ff","#ffc6ff","#ffadad","#ffd6a5","#caffbf"],bg:"#f8fbff"},
+      {name:"Paper Mint Light",cols:["#06d6a0","#118ab2","#ef476f","#ffd166"],bg:"#f4fff8"},
+      {name:"Sorbet Daylight",cols:["#ff8fab","#ffcad4","#ffe5ec","#a0e7e5","#b4f8c8","#fff1a6"],bg:"#fff5f7"},
+      {name:"Cotton Clouds Light",cols:["#3a86ff","#8338ec","#ff006e","#fb5607","#ffbe0b"],bg:"#f6f7fb"},
+      {name:"Creamsicle Noon",cols:["#ff7b00","#ffb703","#ffd166","#eba0ac","#6d597a"],bg:"#fff6e8"},
+      {name:"Marshmallow Field",cols:["#00b4d8","#0077b6","#ef476f","#06d6a0","#ffd166","#8ac926","#1982c4"],bg:"#fafafa"},
+      {name:"Powder Sky",cols:["#2b59c3","#ef476f","#06d6a0"],bg:"#eef6ff"}
+    ];
+
+    // Discrete mappings
+    const NOISE_OPTIONS = [
+      {label:"high",   value:50},
+      {label:"medium", value:20},
+      {label:"low",    value:2},
+      {label:"none",   value:0},
+    ];
+    const CURVATURE_OPTIONS = [
+      {label:"high",   value:50},
+      {label:"medium", value:3},
+      {label:"low",    value:0.5},
+      {label:"none",   value:0},
+    ];
+    const WIDTH_OPTIONS = [
+      {label:"thin",   value:0.35},
+      {label:"medium", value:1.2},
+      {label:"thick",  value:5},
+    ];
+    const noiseValueFromLabel = (label)=> (NOISE_OPTIONS.find(x=>x.label===label)||NOISE_OPTIONS[1]).value;
+    const curvatureValueFromLabel = (label)=> (CURVATURE_OPTIONS.find(x=>x.label===label)||CURVATURE_OPTIONS[1]).value;
+    const widthValueFromLabel = (label)=> (WIDTH_OPTIONS.find(x=>x.label===label)||WIDTH_OPTIONS[1]).value;
+
+    // ---------- globals ----------
+    let HASH,R,palIndex=0;
+    let noiseScale=800, nums=240;
+    let groups=[], running=true, CANVAS;
+
+    const TRAITS={
+      palette:"", density:3,
+      noise:20, noiseLabel:"medium",
+      trackWidth:1.2, trackWidthLabel:"medium",
+      curvature:3, curvatureLabel:"medium",
+      speed:2.5, speedLabel:"medium",
+      trace:"current", maturity:1.0
+    };
+    let useSeeded=false;
+    let perfGuard=true;
+
+    // UI refs
+    let seedLabel,traitsLabel,paletteSelect,toggleBtn,reseedBtn,exportBtn,exportHTML5Btn,exportIPFSBtn,exportMetaOnlyBtn,rebuildBtn,progressEl,useSeededCheckbox,randomizeBtn,perfGuardCheckbox,ipfsCountInput;
+    let densityInput,traceSelect,speedSelect,noiseSelect,curvatureSelect,widthSelect;
+
+    // ---------- particle ----------
+    class Particle{
+      constructor(x,y,speedBase,noiseVal,curv){
+        this.pos=createVector(x,y);
+        this.speedBase=speedBase;
+        this.noiseVal=noiseVal;
+        this.curvature=curv;
+        this.dir=createVector(0,0);
+        this.vel=createVector(0,0);
+      }
+      move(){
+        const f1=1/noiseScale;
+        const angleBase=noise(this.pos.x*f1,this.pos.y*f1)*TWO_PI*noiseScale;
+        const curl=noise(this.pos.x*f1*2.3,this.pos.y*f1*2.3)*TWO_PI;
+        const angle=angleBase*(0.4+0.6*this.curvature)+(this.curvature-1.0)*0.8*curl;
+        this.dir.x=Math.cos(angle); this.dir.y=Math.sin(angle);
+
+        const base=(0.8+Math.log1p(this.noiseVal)*0.25);
+        const speed=this.speedBase*base*Math.max(TRAITS.speed,0);
+        this.vel.set(this.dir).mult(speed); this.pos.add(this.vel);
+
+        const j=0.35*Math.sqrt(this.noiseVal);
+        if(this.noiseVal>0){ this.pos.x+=(random()-0.5)*j; this.pos.y+=(random()-0.5)*j; }
+      }
+      checkEdge(){
+        let pad=30+Math.min(this.noiseVal,3)*80; pad=Math.min(pad,Math.min(width,height)/2-10);
+        if(this.pos.x>width||this.pos.x<0||this.pos.y>height||this.pos.y<0){
+          this.pos.x=random(pad,width-pad); this.pos.y=random(pad,height-pad);
+        }
+      }
+      display(r){ ellipse(this.pos.x,this.pos.y,r,r); }
+    }
+
+    function speedValueFromLabel(label){ return label==="slow"?1 : label==="fast"?5 : 2.5; }
+
+    // --------- p5 lifecycle ---------
+    function setup(){
+      // UI refs
+      toggleBtn=document.getElementById("toggle");
+      reseedBtn=document.getElementById("reseed");
+      exportBtn=document.getElementById("export");
+      exportHTML5Btn=document.getElementById("exportHTML5");
+      exportIPFSBtn=document.getElementById("exportIPFS");
+      exportMetaOnlyBtn=document.getElementById("exportMetaOnly");
+      rebuildBtn=document.getElementById("rebuildBundle");
+      randomizeBtn=document.getElementById("randomize");
+      seedLabel=document.getElementById("seedlabel");
+      traitsLabel=document.getElementById("traitslabel");
+      paletteSelect=document.getElementById("palette");
+      progressEl=document.getElementById("progress");
+      useSeededCheckbox=document.getElementById("useSeeded");
+      perfGuardCheckbox=document.getElementById("perfGuard");
+      ipfsCountInput=document.getElementById("ipfsCount");
+
+      densityInput=document.getElementById("densityInput");
+      traceSelect=document.getElementById("traceSelect");
+      speedSelect=document.getElementById("speedSelect");
+      noiseSelect=document.getElementById("noiseSelect");
+      curvatureSelect=document.getElementById("curvatureSelect");
+      widthSelect=document.getElementById("widthSelect");
+
+      // palette dropdown
+      PALETTES.forEach((p,i)=>{const o=document.createElement("option");o.value=i;o.textContent=p.name;paletteSelect.appendChild(o);});
+      paletteSelect.value=palIndex;
+
+      // canvas FIRST, then seed/reset
+      HASH=getHash();
+      const c=createCanvas(windowWidth,windowHeight); CANVAS=c.canvas; pixelDensity(2);
+
+      hardReset(HASH,palIndex);
+
+      // UI handlers
+      toggleBtn.onclick=()=>{running=!running;toggleBtn.textContent=running?"Pause":"Resume"; if(running) loop(); else noLoop();};
+      reseedBtn.onclick=()=>{const newHash=getHash(); setSeedInURL(newHash); hardReset(newHash,palIndex);};
+      exportBtn.onclick=()=>exportBatch(100,{minFrames:180,maxFrames:3000,maturityRange:[0.2,2.5]});
+      exportHTML5Btn.onclick=()=>exportHTMLBatchForMint(5);
+      exportIPFSBtn.onclick=()=>{ const n=Math.max(1,Math.min(50, +ipfsCountInput.value||5 )); exportIPFSBundle(n); };
+      exportMetaOnlyBtn.onclick=()=>exportMetadataOnlyFromLastRun();
+      rebuildBtn.onclick=()=>rebuildExactBundleFromLastRun();
+      randomizeBtn.onclick=()=>{useSeeded=false;useSeededCheckbox.checked=false;randomizeAllTraits([0.2,2.5]);hardReset(HASH,palIndex);updateManualInputs();enableManual(true);};
+      paletteSelect.onchange=(e)=>{palIndex=+e.target.value; hardReset(HASH,palIndex);};
+
+      useSeededCheckbox.checked = useSeeded;
+      useSeededCheckbox.onchange=()=>{useSeeded=useSeededCheckbox.checked; enableManual(!useSeeded); hardReset(HASH,palIndex);};
+      perfGuardCheckbox.onchange=()=>{perfGuard=perfGuardCheckbox.checked; hardReset(HASH,palIndex);};
+
+      // manual inputs
+      densityInput.onchange=()=>{TRAITS.density=clamp(Math.round(+densityInput.value||1),1,12); if(!useSeeded) hardReset(HASH,palIndex);};
+      speedSelect.onchange=()=>{TRAITS.speedLabel=speedSelect.value; TRAITS.speed=speedValueFromLabel(TRAITS.speedLabel); if(!useSeeded) hardReset(HASH,palIndex);};
+      noiseSelect.onchange=()=>{TRAITS.noiseLabel=noiseSelect.value; TRAITS.noise=noiseValueFromLabel(TRAITS.noiseLabel); if(!useSeeded) hardReset(HASH,palIndex);};
+      curvatureSelect.onchange=()=>{TRAITS.curvatureLabel=curvatureSelect.value; TRAITS.curvature=curvatureValueFromLabel(TRAITS.curvatureLabel); if(!useSeeded) hardReset(HASH,palIndex);};
+      widthSelect.onchange=()=>{TRAITS.trackWidthLabel=widthSelect.value; TRAITS.trackWidth=widthValueFromLabel(TRAITS.trackWidthLabel); if(!useSeeded) hardReset(HASH,palIndex);};
+      traceSelect.onchange=()=>{TRAITS.trace=traceSelect.value; if(!useSeeded) hardReset(HASH,palIndex);};
+
+      enableManual(!useSeeded);
+      updateManualInputs();
+    }
+
+    function enableManual(enabled){
+      [densityInput,speedSelect,noiseSelect,curvatureSelect,widthSelect,traceSelect].forEach(el=>{
+        if(enabled){el.classList.remove('disabled');el.disabled=false;} else {el.classList.add('disabled');el.disabled=true;}
+      });
+    }
+
+    function setSeedInURL(h){const u=new URL(window.location.href);u.searchParams.set("hash",h);history.replaceState(null,"",u);}
+
+    function applySeed(h){
+      const s=seedFromHash(h); noiseSeed(s); randomSeed(s); R=rngFromHash(h);
+      seedLabel.textContent=h.slice(0,18)+"…";
+      nums=80+Math.floor(R()*820);
+      noiseScale=200+Math.floor(R()*2000);
+
+      if(useSeeded){
+        TRAITS.density    = 1+Math.floor(R()*12);
+        TRAITS.noiseLabel = ["high","medium","low","none"][Math.floor(R()*4)];
+        TRAITS.noise      = noiseValueFromLabel(TRAITS.noiseLabel);
+        TRAITS.curvatureLabel = ["high","medium","low","none"][Math.floor(R()*4)];
+        TRAITS.curvature  = curvatureValueFromLabel(TRAITS.curvatureLabel);
+        TRAITS.trackWidthLabel = ["thin","medium","thick"][Math.floor(R()*3)];
+        TRAITS.trackWidth = widthValueFromLabel(TRAITS.trackWidthLabel);
+        const spIdx = Math.floor(R()*3);
+        TRAITS.speedLabel = ["slow","medium","fast"][spIdx];
+        TRAITS.speed = speedValueFromLabel(TRAITS.speedLabel);
+        TRAITS.trace="current";
+      }else{
+        TRAITS.density    = clamp(Math.round(TRAITS.density),1,12);
+        TRAITS.speed      = speedValueFromLabel(TRAITS.speedLabel);
+        TRAITS.noise      = noiseValueFromLabel(TRAITS.noiseLabel);
+        TRAITS.curvature  = curvatureValueFromLabel(TRAITS.curvatureLabel);
+        TRAITS.trackWidth = widthValueFromLabel(TRAITS.trackWidthLabel);
+        if(!["full","current","none"].includes(TRAITS.trace)) TRAITS.trace="current";
+      }
+      updateManualInputs(); updateTraitsLabel();
+    }
+
+    function updateManualInputs(){
+      densityInput.value    = TRAITS.density;
+      speedSelect.value     = TRAITS.speedLabel;
+      noiseSelect.value     = TRAITS.noiseLabel;
+      curvatureSelect.value = TRAITS.curvatureLabel;
+      widthSelect.value     = TRAITS.trackWidthLabel;
+      traceSelect.value     = TRAITS.trace;
+      document.getElementById("perfGuard").checked = perfGuard;
+    }
+
+    function updateTraitsLabel(){
+      const mat=typeof TRAITS.maturity==="number"?TRAITS.maturity.toFixed(2):"—";
+      const perf = perfGuard ? "on" : "off";
+      traitsLabel.textContent =
+        `palette=${PALETTES[palIndex].name} • density=${TRAITS.density} • noise=${TRAITS.noiseLabel}(${TRAITS.noise}) • `+
+        `width=${TRAITS.trackWidthLabel}(${TRAITS.trackWidth}) • curvature=${TRAITS.curvatureLabel}(${TRAITS.curvature}) • `+
+        `speed=${TRAITS.speedLabel}(${TRAITS.speed}) • trace=${TRAITS.trace} • perf=${perf} • maturity=${mat}`;
+    }
+
+    function getPerfAdjustedCounts(){
+      if(!perfGuard) return {densityUsed: TRAITS.density, particlesPerBandUsed: nums, scale:1};
+      const w = TRAITS.trackWidth, n = TRAITS.noise;
+      const scale = 1 + (w-0.2)*0.4 + Math.sqrt(n)*0.15;
+      const densityUsed = Math.max(1, Math.round(TRAITS.density / (1 + (w-0.2)*0.30 + Math.sqrt(n)*0.12)));
+      const particlesPerBandUsed = Math.max(40, Math.round(nums / scale));
+      return {densityUsed, particlesPerBandUsed, scale};
+    }
+
+    function hardReset(h,palIdx){
+      applySeed(h);
+      groups=[]; background(PALETTES[palIdx].bg);
+
+      const {densityUsed, particlesPerBandUsed} = getPerfAdjustedCounts();
+      const cols=PALETTES[palIdx].cols;
+      const baseSpeeds=[0.28,0.35,0.45,0.52,0.6,0.68,0.76,0.84,0.92];
+
+      for(let g=0; g<densityUsed; g++){
+        const particles=[], sp=baseSpeeds[g%baseSpeeds.length]*(0.85+random()*0.35);
+        for(let i=0;i<particlesPerBandUsed;i++){
+          particles.push(new Particle(
+            random(0,width), random(0,height),
+            sp, +TRAITS.noise, +TRAITS.curvature
+          ));
+        }
+        groups.push({color:cols[g%cols.length],particles});
+      }
+      drawFade(1.0);
+      if(!running){running=true;toggleBtn.textContent="Pause";loop();}
+      updateTraitsLabel();
+    }
+
+    function getFadeAlpha(){
+      if(TRAITS.trace==="full") return 0.0;
+      if(TRAITS.trace==="none") return 1.0;
+      return clamp(0.02+TRAITS.noise*0.03,0.02,0.14);
+    }
+
+    function stepOnce(){
+      drawFade(getFadeAlpha());
+      noStroke(); smooth();
+      groups.forEach(group=>{
+        const ps=group.particles;
+        for(let i=0;i<ps.length;i++){
+          const p=ps[i];
+          const radius=map(i,0,ps.length,0.5,2.2)*TRAITS.trackWidth;
+          const a=map(i,0,ps.length,10,235);
+          const c=color(group.color); c.setAlpha(a); fill(c);
+          p.move(); p.display(radius); p.checkEdge();
+        }
+      });
+    }
+
+    function draw(){ stepOnce(); }
+
+    function drawFade(alpha){
+      if(alpha<=0) return;
+      noStroke();
+      const c=color(PALETTES[palIndex].bg); c.setAlpha(alpha*255); fill(c); rect(0,0,width,height);
+    }
+
+    function windowResized(){ resizeCanvas(windowWidth,windowHeight); background(PALETTES[palIndex].bg); }
+
+    function keyPressed(){
+      if(key==='s'||key==='S') saveCanvas(`perlin_traits_${HASH.slice(2,10)}`,'png');
+      if(key===' '){ running=!running; toggleBtn.textContent=running?"Pause":"Resume"; if(running) loop(); else noLoop(); }
+    }
+
+    // ---------- random helpers ----------
+    function sampleUniform(min,max){return min+Math.random()*(max-min)}
+    function sampleInt(min,max){return Math.floor(sampleUniform(min,max+1))}
+    function randomizeAllTraits(maturityRange=[0.2,2.5]){
+      palIndex=sampleInt(0,PALETTES.length-1);
+      TRAITS.density    = sampleInt(1,12);
+      TRAITS.trackWidthLabel = ["thin","medium","thick"][sampleInt(0,2)];
+      TRAITS.trackWidth = widthValueFromLabel(TRAITS.trackWidthLabel);
+      TRAITS.noiseLabel = ["high","medium","low","none"][sampleInt(0,3)];
+      TRAITS.noise      = noiseValueFromLabel(TRAITS.noiseLabel);
+      TRAITS.curvatureLabel = ["high","medium","low","none"][sampleInt(0,3)];
+      TRAITS.curvature  = curvatureValueFromLabel(TRAITS.curvatureLabel);
+      const spLabels = ["slow","medium","fast"];
+      TRAITS.speedLabel = spLabels[sampleInt(0,2)];
+      TRAITS.speed = speedValueFromLabel(TRAITS.speedLabel);
+      const r = Math.random();
+      TRAITS.trace = r < 0.10 ? "none" : (Math.random() < 0.5 ? "full" : "current");
+      TRAITS.maturity   = +sampleUniform(maturityRange[0],maturityRange[1]).toFixed(2);
+      document.getElementById("palette").value=palIndex;
+      updateManualInputs(); updateTraitsLabel();
+    }
+
+    function csvEscape(val){const s=String(val);return /[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s;}
+
+    // ---------- batch export (ZIP) with manifest ----------
+    async function exportBatch(count=100,{minFrames=180,maxFrames=3000,maturityRange=[0.2,2.5]}={}){
+      const wasRunning=running; noLoop(); running=false; toggleBtn.textContent="Resume";
+      progressEl.style.display="inline-block"; progressEl.textContent=`Exporting… 0/${count}`;
+      const zip=new JSZip(); const records=[];
+      for(let i=0;i<count;i++){
+        const seed=getHash(); HASH=seed; setSeedInURL(seed);
+        const prev=useSeeded; useSeeded=false; randomizeAllTraits(maturityRange); hardReset(seed,palIndex); useSeeded=prev;
+        const mMin=maturityRange[0], mMax=maturityRange[1];
+        const t=clamp((TRAITS.maturity-mMin)/(mMax-mMin),0,1);
+        const frames=Math.round(minFrames+t*(maxFrames-minFrames));
+        for(let f=0;f<frames;f++){ stepOnce(); if(f%60===0) await new Promise(r=>requestAnimationFrame(r)); }
+        const blob=await new Promise(res=>CANVAS.toBlob(res,"image/png"));
+        const filename=`perlin_${String(i+1).padStart(3,"0")}_${seed.slice(2,10)}_pal-${PALETTES[palIndex].name.replace(/\s+/g,'-')}_den${TRAITS.density}_n${TRAITS.noise}_w${TRAITS.trackWidth}_c${TRAITS.curvature}_sp${TRAITS.speedLabel}_tr${TRAITS.trace}_m${TRAITS.maturity}_pg${perfGuard?'1':'0'}.png`;
+        zip.file(filename,blob);
+        const {densityUsed, particlesPerBandUsed} = getPerfAdjustedCounts();
+        records.push({
+          index:i+1, filename, seed, palette:PALETTES[palIndex].name,
+          densitySeeded:TRAITS.density, densityUsed,
+          noiseLabel:TRAITS.noiseLabel, noise:TRAITS.noise,
+          widthLabel:TRAITS.trackWidthLabel, width:TRAITS.trackWidth,
+          curvatureLabel:TRAITS.curvatureLabel, curvature:TRAITS.curvature,
+          speedLabel:TRAITS.speedLabel, speed:TRAITS.speed,
+          trace:TRAITS.trace,
+          maturity:TRAITS.maturity, frames,
+          particlesPerBandSeeded:nums, particlesPerBandUsed,
+          perfGuard,
+          noiseScale, canvas:{width,height}
+        });
+        progressEl.textContent=`Exporting… ${i+1}/${count} • maturity ${TRAITS.maturity}`;
+        await new Promise(r=>setTimeout(r,10));
+      }
+      const jsonText=JSON.stringify(records,null,2); zip.file("manifest.json",jsonText);
+      const headers=["index","filename","seed","palette","densitySeeded","densityUsed","noiseLabel","noise","widthLabel","width","curvatureLabel","curvature","speedLabel","speed","trace","maturity","frames","particlesPerBandSeeded","particlesPerBandUsed","perfGuard","noiseScale","canvasWidth","canvasHeight"];
+      const csvLines=[headers.join(",")];
+      for(const r of records){
+        csvLines.push([r.index,r.filename,r.seed,r.palette,r.densitySeeded,r.densityUsed,r.noiseLabel,r.noise,r.widthLabel,r.width,r.curvatureLabel,r.curvature,r.speedLabel,r.speed,r.trace,r.maturity,r.frames,r.particlesPerBandSeeded,r.particlesPerBandUsed,r.perfGuard?1:0,r.noiseScale,r.canvas.width,r.canvas.height].map(csvEscape).join(","));
+      }
+      zip.file("manifest.csv",csvLines.join("\n"));
+      const zipBlob=await zip.generateAsync({type:"blob"}); saveAs(zipBlob,`perlin_export_${Date.now()}.zip`);
+      progressEl.style.display="none";
+      if(wasRunning){loop();running=true;toggleBtn.textContent="Pause";}
+    }
+
+    // ---------- build standalone HTML (cover + favicon; external p5) ----------
+    function buildStandaloneHTML(config){
+      return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>${config.name}</title>
+<link rel="icon" sizes="any" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E">
+<style>
+  html,body{margin:0;width:100%;height:100%;background:${config.palette.bg};overflow:hidden}
+  canvas{display:block;opacity:0;transition:opacity .12s ease}
+  #cover{position:fixed;inset:0;background:${config.palette.bg};z-index:2;opacity:1;transition:opacity .18s ease}
+</style>
+</head>
+<body>
+<div id="cover" aria-hidden="true"></div>
+<script src="./p5.min.js"></scr` + `ipt>
+<script>
+const CONFIG = ${JSON.stringify(config)};
+const BASE_W = 1600, BASE_H = 1600;
+
+function seedFromHash(hx){let acc=0>>>0;for(let i=2;i<hx.length;i+=8)acc^=parseInt(hx.slice(i,i+8),16)>>>0;return acc>>>0}
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+let groups=[], noiseScale=CONFIG.noiseScale, nums=CONFIG.particlesPerBand;
+let cnv, resizeTm;
+
+class Particle{
+  constructor(x,y,sp,noiseVal,curv){
+    this.pos=createVector(x,y);
+    this.sp=sp; this.noiseVal=noiseVal; this.curv=curv;
+    this.dir=createVector(0,0); this.vel=createVector(0,0);
+  }
+  move(){
+    const f1=1/noiseScale;
+    const angleBase=noise(this.pos.x*f1,this.pos.y*f1)*TWO_PI*noiseScale;
+    const curl=noise(this.pos.x*f1*2.3,this.pos.y*f1*2.3)*TWO_PI;
+    const angle=angleBase*(0.4+0.6*this.curv)+(this.curv-1.0)*0.8*curl;
+    this.dir.x=Math.cos(angle); this.dir.y=Math.sin(angle);
+    const base=(0.8+Math.log1p(this.noiseVal)*0.25);
+    const speed=this.sp*base*Math.max(CONFIG.speed,0);
+    this.vel.set(this.dir).mult(speed); this.pos.add(this.vel);
+    const j=0.35*Math.sqrt(this.noiseVal);
+    if(this.noiseVal>0){ this.pos.x+=(Math.random()-0.5)*j; this.pos.y+=(Math.random()-0.5)*j; }
+  }
+  checkEdge(){
+    let pad=30+Math.min(this.noiseVal,3)*80; pad=Math.min(pad,Math.min(width,height)/2-10);
+    if(this.pos.x>width||this.pos.x<0||this.pos.y>height||this.pos.y<0){
+      this.pos.x=random(pad,width-pad); this.pos.y=random(pad,height-pad);
+    }
+  }
+  display(r){ ellipse(this.pos.x,this.pos.y,r,r); }
+}
+function getFadeAlpha(){ if(CONFIG.trace==="full") return 0.0; if(CONFIG.trace==="none") return 1.0; return clamp(0.02+CONFIG.noise*0.03,0.02,0.14); }
+function drawFade(alpha){ if(alpha<=0) return; noStroke(); const c=color(CONFIG.palette.bg); c.setAlpha(alpha*255); fill(c); rect(0,0,width,height); }
+
+function effectiveCounts(){
+  const areaScale = Math.sqrt((window.innerWidth*window.innerHeight)/(BASE_W*BASE_H));
+  const perBand = Math.max(40, Math.round(nums * areaScale));
+  const density = CONFIG.density;
+  return { perBand, density };
+}
+
+function buildGroups(){
+  groups=[];
+  background(CONFIG.palette.bg);
+  const cols=CONFIG.palette.cols;
+  const baseSpeeds=[0.28,0.35,0.45,0.52,0.6,0.68,0.76,0.84,0.92];
+  const { perBand, density } = effectiveCounts();
+  for(let g=0; g<density; g++){
+    const particles=[], sp=baseSpeeds[g%baseSpeeds.length]*(0.85+Math.random()*0.35);
+    for(let i=0;i<perBand;i++){
+      particles.push(new Particle(random(0,width),random(0,height),sp,CONFIG.noise,CONFIG.curvature));
+    }
+    groups.push({color:cols[g%cols.length],particles});
+  }
+  drawFade(1.0);
+}
+
+function setup(){
+  cnv=createCanvas(window.innerWidth, window.innerHeight);
+  pixelDensity(Math.min(2, window.devicePixelRatio || 1));
+  const s=seedFromHash(CONFIG.seed); noiseSeed(s); randomSeed(s);
+
+  buildGroups();
+  for(let i=0;i<24;i++){ stepOnce(); }
+
+  cnv.canvas.style.opacity='1';
+  const cover=document.getElementById('cover');
+  if(cover){ setTimeout(()=>{ cover.style.opacity='0'; setTimeout(()=>cover.remove(), 220); }, 40); }
+}
+
+function windowResized(){
+  clearTimeout(resizeTm);
+  resizeTm = setTimeout(()=>{
+    resizeCanvas(window.innerWidth, window.innerHeight);
+    buildGroups();
+    stepOnce();
+  }, 60);
+}
+
+function stepOnce(){
+  drawFade(getFadeAlpha());
+  noStroke(); smooth();
+  groups.forEach(group=>{
+    const ps=group.particles;
+    for(let i=0;i<ps.length;i++){
+      const p=ps[i];
+      const radius=map(i,0,ps.length,0.5,2.2)*CONFIG.trackWidth;
+      const a=map(i,0,ps.length,10,235);
+      const c=color(group.color); c.setAlpha(a); fill(c);
+      p.move(); p.display(radius); p.checkEdge();
+    }
+  });
+}
+
+function draw(){ stepOnce(); }
+</scr` + `ipt>
+</body></html>`;
+    }
+
+    // ---------- Export 5 standalone HTMLs for mint ----------
+    async function exportHTMLBatchForMint(count=5){
+      const wasRunning=running; if(wasRunning){ noLoop(); running=false; toggleBtn.textContent="Resume"; }
+      const zip=new JSZip(); const htmlFolder=zip.folder("html");
+      const p5Code=await fetchP5();
+      if(!p5Code){ alert("Couldn't download p5.min.js for the HTML bundle. Check your internet and try again."); return; }
+      htmlFolder.file("p5.min.js", p5Code);
+
+      for(let i=0;i<count;i++){
+        const seed=getHash(); HASH=seed; setSeedInURL(seed);
+        const prev=useSeeded; useSeeded=false; randomizeAllTraits([0.2,2.5]); hardReset(seed,palIndex); useSeeded=prev;
+
+        const localPal=PALETTES[palIndex];
+        const fileStem=`token_${String(i+1).padStart(3,"0")}`;
+        const config={
+          name:`Perlin Flow — Test #${i+1}`,
+          fileStem,
+          seed,
+          palette:{name:localPal.name, cols:localPal.cols, bg:localPal.bg},
+          density:TRAITS.density,
+          noise:TRAITS.noise, noiseLabel:TRAITS.noiseLabel,
+          trackWidth:TRAITS.trackWidth, trackWidthLabel:TRAITS.trackWidthLabel,
+          curvature:TRAITS.curvature, curvatureLabel:TRAITS.curvatureLabel,
+          speed:TRAITS.speed, speedLabel:TRAITS.speedLabel,
+          trace:TRAITS.trace,
+          noiseScale, particlesPerBand:nums,
+          canvas:{width:1600,height:1600}
+        };
+        const html=buildStandaloneHTML(config);
+        htmlFolder.file(`${fileStem}.html`, html);
+      }
+
+      const blob=await zip.generateAsync({type:"blob"});
+      saveAs(blob,"html_for_mint.zip");
+      if(wasRunning){ loop(); running=true; toggleBtn.textContent="Pause"; }
+    }
+
+    // ---------- Export IPFS bundle: asks for CID & saves LAST RUN MANIFEST ----------
+    async function exportIPFSBundle(count=5){
+      const wasRunning=running; if(wasRunning){ noLoop(); running=false; toggleBtn.textContent="Resume"; }
+      progressEl.style.display="inline-block"; progressEl.textContent=`Bundling… 0/${count}`;
+
+      // Ask for CID (optional)
+      let input;
+      try {
+        input = prompt(
+          "Enter the IPFS root CID for this bundle (bafy... or Qm...).\nLeave blank to keep CID_PLACEHOLDER:",
+          localStorage.getItem("lastCID") || ""
+        );
+      } catch(e){ input=""; }
+      let CID = "CID_PLACEHOLDER";
+      if (typeof input === "string") {
+        input = input.trim();
+        if (input) {
+          const looksCID = /^((bafy)[a-z0-9]+|(Qm)[1-9A-HJ-NP-Za-km-z]{44,})$/.test(input);
+          if (looksCID) { CID = input; try{localStorage.setItem("lastCID", CID);}catch(e){} }
+          else alert("That does not look like a valid CID. Using CID_PLACEHOLDER instead.");
+        }
+      }
+
+      const zip=new JSZip();
+      const htmlFolder=zip.folder("html");
+      const imagesFolder=zip.folder("images");
+      const metadataFolder=zip.folder("metadata");
+
+      const p5Code=await fetchP5();
+      if(!p5Code){
+        alert("Couldn't download p5.min.js for the bundle. Check your internet and try again.");
+        progressEl.style.display="none";
+        return;
+      }
+      htmlFolder.file("p5.min.js", p5Code);
+
+      const records=[];
+
+      for(let i=0;i<count;i++){
+        // Randomize & render frames for preview
+        const seed=getHash(); HASH=seed; setSeedInURL(seed);
+        const prev=useSeeded; useSeeded=false; randomizeAllTraits([0.2,2.5]); hardReset(seed,palIndex); useSeeded=prev;
+
+        const minFrames=360, maxFrames=1200;
+        const t=clamp((TRAITS.maturity-0.2)/(2.5-0.2),0,1);
+        const frames=Math.round(minFrames+t*(maxFrames-minFrames));
+        for(let f=0;f<frames;f++){ stepOnce(); if(f%60===0) await new Promise(r=>requestAnimationFrame(r)); }
+
+        // Preview PNG
+        const pngBlob=await new Promise(res=>CANVAS.toBlob(res,"image/png"));
+        const idx=String(i+1).padStart(3,"0");
+        const stem=`token_${idx}`;
+        imagesFolder.file(`${stem}.png`, pngBlob);
+
+        // HTML artwork
+        const localPal=PALETTES[palIndex];
+        const config={
+          name:`Perlin Flow — #${i+1}`,
+          fileStem:stem,
+          seed,
+          palette:{name:localPal.name, cols:localPal.cols, bg:localPal.bg},
+          density:TRAITS.density,
+          noise:TRAITS.noise, noiseLabel:TRAITS.noiseLabel,
+          trackWidth:TRAITS.trackWidth, trackWidthLabel:TRAITS.trackWidthLabel,
+          curvature:TRAITS.curvature, curvatureLabel:TRAITS.curvatureLabel,
+          speed:TRAITS.speed, speedLabel:TRAITS.speedLabel,
+          trace:TRAITS.trace,
+          noiseScale, particlesPerBand:nums,
+          canvas:{width:1600,height:1600}
+        };
+        const html=buildStandaloneHTML(config);
+        htmlFolder.file(`${stem}.html`, html);
+
+        // Metadata JSON (CID or placeholder)
+        const meta={
+          name: `Perlin Flow #${i+1}`,
+          description: "Live, interactive generative artwork. Runs fully in-browser via p5.js.",
+          image: `ipfs://${CID}/images/${stem}.png`,
+          animation_url: `ipfs://${CID}/html/${stem}.html`,
+          attributes: [
+            {"trait_type":"Palette","value":localPal.name},
+            {"trait_type":"Density","value":String(TRAITS.density)},
+            {"trait_type":"Noise","value":TRAITS.noiseLabel},
+            {"trait_type":"Curvature","value":TRAITS.curvatureLabel},
+            {"trait_type":"Width","value":TRAITS.trackWidthLabel},
+            {"trait_type":"Speed","value":TRAITS.speedLabel},
+            {"trait_type":"Trace","value":TRAITS.trace},
+            {"trait_type":"Maturity","value":String(TRAITS.maturity)},
+            {"trait_type":"Seed","value":seed}
+          ],
+          compiler: "Perlin Flow Generator v1.0"
+        };
+        metadataFolder.file(`${i+1}.json`, JSON.stringify(meta, null, 2));
+
+        const {densityUsed, particlesPerBandUsed} = getPerfAdjustedCounts();
+        records.push({
+          index:i+1, stem, seed, palette:localPal.name,
+          densitySeeded:TRAITS.density, densityUsed,
+          noiseLabel:TRAITS.noiseLabel, noise:TRAITS.noise,
+          widthLabel:TRAITS.trackWidthLabel, width:TRAITS.trackWidth,
+          curvatureLabel:TRAITS.curvatureLabel, curvature:TRAITS.curvature,
+          speedLabel:TRAITS.speedLabel, speed:TRAITS.speed,
+          trace:TRAITS.trace, maturity:TRAITS.maturity,
+          frames, particlesPerBandSeeded:nums, particlesPerBandUsed,
+          noiseScale, CIDUsed: CID
+        });
+
+        progressEl.textContent=`Bundling… ${i+1}/${count}`;
+        await new Promise(r=>setTimeout(r,10));
+      }
+
+      // Save a manifest of the EXACT tokens we just made
+      const lastRun = { when: Date.now(), count, records };
+      try { localStorage.setItem("lastRunManifest", JSON.stringify(lastRun)); } catch(e){}
+
+      // README + manifest  (FIXED ternary with ? :)
+      const readme = (CID==="CID_PLACEHOLDER")
+        ? `IPFS BUNDLE
+
+This ZIP contains:
+- html/ : standalone HTML artworks (with local p5.min.js)
+- images/ : preview PNGs (one per token)
+- metadata/ : JSON metadata that still contain CID_PLACEHOLDER.
+
+NEXT:
+1) Upload the entire folder to IPFS (Pinata, web3.storage, NFT.storage).
+2) Get the root CID (e.g. bafy...).
+3) Click "Metadata Only (CID)" in the app and paste your CID to produce a metadata-only ZIP that points to these exact files.
+4) Mint using ipfs://<CID>/metadata/1.json, etc.`
+        : `IPFS BUNDLE
+
+This ZIP contains:
+- html/ : standalone HTML artworks (with local p5.min.js)
+- images/ : preview PNGs (one per token)
+- metadata/ : JSON metadata already pointing to your CID: ipfs://${CID}/...
+
+DONE:
+• You can mint now using these metadata files:
+  - 1.json → ipfs://${CID}/metadata/1.json
+  - 2.json → ipfs://${CID}/metadata/2.json
+  - ...
+`;
+      const jsonText=JSON.stringify(records,null,2);
+      zip.file("README.txt", readme);
+      zip.file("CID.txt", CID);
+      zip.file("manifest.json", jsonText);
+
+      const headers=["index","stem","seed","palette","densitySeeded","densityUsed","noiseLabel","noise","widthLabel","width","curvatureLabel","curvature","speedLabel","speed","trace","maturity","frames","particlesPerBandSeeded","particlesPerBandUsed","noiseScale","CIDUsed"];
+      const csvLines=[headers.join(",")];
+      for(const r of records){
+        csvLines.push([r.index,r.stem,r.seed,r.palette,r.densitySeeded,r.densityUsed,r.noiseLabel,r.noise,r.widthLabel,r.width,r.curvatureLabel,r.curvature,r.speedLabel,r.speed,r.trace,r.maturity,r.frames,r.particlesPerBandSeeded,r.particlesPerBandUsed,r.noiseScale,r.CIDUsed].map(csvEscape).join(","));
+      }
+      zip.file("manifest.csv",csvLines.join("\n"));
+
+      const blob=await zip.generateAsync({type:"blob"});
+      saveAs(blob,`ipfs_bundle_${Date.now()}.zip`);
+
+      progressEl.style.display="none";
+      if(wasRunning){ loop(); running=true; toggleBtn.textContent="Pause"; }
+    }
+
+    // ---------- Metadata-only (no re-render) ----------
+    async function exportMetadataOnlyFromLastRun(){
+      let lastRun;
+      try { lastRun = JSON.parse(localStorage.getItem("lastRunManifest") || "null"); } catch(e){ lastRun=null; }
+      if(!lastRun || !Array.isArray(lastRun.records) || lastRun.records.length===0){
+        alert("No previous export found. First run 'Export IPFS Bundle' to generate the artworks.");
+        return;
+      }
+
+      let input;
+      try {
+        input = prompt(
+          `Enter the IPFS root CID to reference your previously uploaded folder (bafy... or Qm...).`,
+          localStorage.getItem("lastCID") || ""
+        );
+      } catch(e){ input=""; }
+      if(typeof input!=="string" || !(input=input.trim())){
+        alert("No CID entered. Aborting.");
+        return;
+      }
+      const looksCID = /^((bafy)[a-z0-9]+|(Qm)[1-9A-HJ-NP-Za-km-z]{44,})$/.test(input);
+      if(!looksCID){
+        alert("That does not look like a valid CID. Aborting.");
+        return;
+      }
+      try { localStorage.setItem("lastCID", input); } catch(e){}
+
+      const zip = new JSZip();
+      const metadataFolder = zip.folder("metadata");
+
+      lastRun.records.forEach(r=>{
+        const meta={
+          name: `Perlin Flow #${r.index}`,
+          description: "Live, interactive generative artwork. Runs fully in-browser via p5.js.",
+          image: `ipfs://${input}/images/${r.stem}.png`,
+          animation_url: `ipfs://${input}/html/${r.stem}.html`,
+          attributes: [
+            {"trait_type":"Palette","value":r.palette},
+            {"trait_type":"Density","value":String(r.densitySeeded)},
+            {"trait_type":"Noise","value":r.noiseLabel},
+            {"trait_type":"Curvature","value":r.curvatureLabel},
+            {"trait_type":"Width","value":r.widthLabel},
+            {"trait_type":"Speed","value":r.speedLabel},
+            {"trait_type":"Trace","value":r.trace},
+            {"trait_type":"Maturity","value":String(r.maturity)},
+            {"trait_type":"Seed","value":r.seed}
+          ],
+          compiler: "Perlin Flow Generator v1.0 (metadata-only from last run)"
+        };
+        metadataFolder.file(`${r.index}.json`, JSON.stringify(meta, null, 2));
+      });
+
+      zip.file("README.txt",
+`METADATA ONLY (from last run)
+
+• These JSON files point to your previously uploaded folder:
+  ipfs://${input}/html/token_XXX.html
+  ipfs://${input}/images/token_XXX.png
+
+• They were generated from your saved last-run manifest, so they match the EXACT outputs you uploaded.
+
+Tip: Your token URIs will be ipfs://${input}/metadata/1.json (then 2.json, 3.json, ...).`);
+
+      const blob=await zip.generateAsync({type:"blob"});
+      saveAs(blob,`metadata_only_${Date.now()}.zip`);
+    }
+
+    // ---------- Rebuild EXACT bundle from LAST RUN ----------
+    async function rebuildExactBundleFromLastRun(){
+      let lastRun;
+      try { lastRun = JSON.parse(localStorage.getItem("lastRunManifest") || "null"); } catch(e){ lastRun=null; }
+      if(!lastRun || !Array.isArray(lastRun.records) || lastRun.records.length===0){
+        alert("No previous export found. First run 'Export IPFS Bundle' to generate and save a last-run manifest.");
+        return;
+      }
+
+      let inputCID = "";
+      try {
+        inputCID = prompt(
+          "Enter a new IPFS root CID to use for ALL metadata (leave blank to reuse the per-token CID from the last run):",
+          localStorage.getItem("lastCID") || ""
+        ) || "";
+      } catch(e){ inputCID=""; }
+      inputCID = inputCID.trim();
+      const cidRegex = /^((bafy)[a-z0-9]+|(Qm)[1-9A-HJ-NP-Za-km-z]{44,})$/;
+      const globalCID = inputCID && cidRegex.test(inputCID) ? inputCID : "";
+
+      if(globalCID){ try{ localStorage.setItem("lastCID", globalCID); }catch(e){} }
+
+      const wasRunning = running;
+      if(wasRunning){ noLoop(); running=false; toggleBtn.textContent="Resume"; }
+      progressEl.style.display="inline-block";
+      progressEl.textContent=`Rebuilding… 0/${lastRun.records.length}`;
+
+      const zip = new JSZip();
+      const htmlFolder = zip.folder("html");
+      const imagesFolder = zip.folder("images");
+      const metadataFolder = zip.folder("metadata");
+
+      const p5Code = await fetchP5();
+      if(!p5Code){
+        alert("Couldn't download p5.min.js for the bundle. Check your internet and try again.");
+        progressEl.style.display="none";
+        if(wasRunning){ loop(); running=true; toggleBtn.textContent="Pause"; }
+        return;
+      }
+      htmlFolder.file("p5.min.js", p5Code);
+
+      const prevPerf = perfGuard;
+      const prevPal = palIndex;
+
+      perfGuard = false;
+
+      for(let i=0; i<lastRun.records.length; i++){
+        const r = lastRun.records[i];
+
+        let palIdx = PALETTES.findIndex(p => p.name === r.palette);
+        if(palIdx < 0) palIdx = 0;
+
+        palIndex = palIdx;
+        HASH = r.seed; setSeedInURL(HASH);
+        noiseScale = r.noiseScale || noiseScale;
+        nums = r.particlesPerBandSeeded || nums;
+
+        TRAITS.density = r.densitySeeded;
+        TRAITS.noise = +r.noise;
+        TRAITS.noiseLabel = r.noiseLabel;
+        TRAITS.trackWidth = +r.width;
+        TRAITS.trackWidthLabel = r.widthLabel;
+        TRAITS.curvature = +r.curvature;
+        TRAITS.curvatureLabel = r.curvatureLabel;
+        TRAITS.speedLabel = r.speedLabel;
+        TRAITS.speed = (r.speedLabel==="slow"?1 : r.speedLabel==="fast"?5 : 2.5);
+        TRAITS.trace = r.trace;
+        TRAITS.maturity = +r.maturity;
+
+        hardReset(HASH, palIndex);
+
+        const frames = r.frames || 600;
+        for(let f=0; f<frames; f++){
+          stepOnce();
+          if(f%60===0) await new Promise(res => requestAnimationFrame(res));
+        }
+
+        const pngBlob = await new Promise(res => CANVAS.toBlob(res, "image/png"));
+        imagesFolder.file(`${r.stem}.png`, pngBlob);
+
+        const localPal = PALETTES[palIndex];
+        const config = {
+          name: `Perlin Flow — #${r.index}`,
+          fileStem: r.stem,
+          seed: r.seed,
+          palette: { name: localPal.name, cols: localPal.cols, bg: localPal.bg },
+          density: r.densitySeeded,
+          noise: r.noise, noiseLabel: r.noiseLabel,
+          trackWidth: r.width, trackWidthLabel: r.widthLabel,
+          curvature: r.curvature, curvatureLabel: r.curvatureLabel,
+          speed: TRAITS.speed, speedLabel: r.speedLabel,
+          trace: r.trace,
+          noiseScale: r.noiseScale,
+          particlesPerBand: r.particlesPerBandSeeded || nums,
+          canvas: { width: 1600, height: 1600 }
+        };
+        const html = buildStandaloneHTML(config);
+        htmlFolder.file(`${r.stem}.html`, html);
+
+        const useCID = globalCID || r.CIDUsed || "CID_PLACEHOLDER";
+        const meta = {
+          name: `Perlin Flow #${r.index}`,
+          description: "Live, interactive generative artwork. Runs fully in-browser via p5.js.",
+          image: `ipfs://${useCID}/images/${r.stem}.png`,
+          animation_url: `ipfs://${useCID}/html/${r.stem}.html`,
+          attributes: [
+            {"trait_type":"Palette","value":r.palette},
+            {"trait_type":"Density","value":String(r.densitySeeded)},
+            {"trait_type":"Noise","value":r.noiseLabel},
+            {"trait_type":"Curvature","value":r.curvatureLabel},
+            {"trait_type":"Width","value":r.widthLabel},
+            {"trait_type":"Speed","value":r.speedLabel},
+            {"trait_type":"Trace","value":r.trace},
+            {"trait_type":"Maturity","value":String(r.maturity)},
+            {"trait_type":"Seed","value":r.seed}
+          ],
+          compiler: "Perlin Flow Generator v1.0 (rebuilt from last run)"
+        };
+        metadataFolder.file(`${r.index}.json`, JSON.stringify(meta, null, 2));
+
+        progressEl.textContent = `Rebuilding… ${i+1}/${lastRun.records.length}`;
+        await new Promise(r => setTimeout(r, 10));
+      }
+
+      zip.file("README.txt",
+`REBUILD EXACT BUNDLE
+
+• This folder was rebuilt from your last-run manifest saved in localStorage.
+• HTML + metadata match the original run exactly (same seeds & traits).
+• PNG previews are re-rendered; minor pixel differences are possible.
+
+Tip: If you uploaded the original folder to IPFS already, either:
+  a) reuse that CID when prompted, or
+  b) upload this rebuilt folder and use its new CID.`);
+
+      const blob = await zip.generateAsync({type:"blob"});
+      saveAs(blob, `rebuilt_bundle_${Date.now()}.zip`);
+
+      perfGuard = prevPerf;
+      palIndex = prevPal;
+      progressEl.style.display="none";
+      if(wasRunning){ loop(); running=true; toggleBtn.textContent="Pause"; }
+    }
+
+    // ---------- helper to fetch p5 with 3-CDN fallback ----------
+    async function fetchP5(){
+      const P5_URLs=[
+        "https://cdn.jsdelivr.net/npm/p5@1.9.2/lib/p5.min.js",
+        "https://unpkg.com/p5@1.9.2/lib/p5.min.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.2/p5.min.js"
+      ];
+      for(const u of P5_URLs){
+        try{ const r=await fetch(u,{cache:"no-cache"}); if(r.ok){ return await r.text(); } }catch(e){}
+      }
+      return null;
+    }
+
+    // --------- load p5 with fallback (3 CDNs) for the main page ---------
+    (function loadP5WithFallback(){
+      const urls=[
+        "https://cdn.jsdelivr.net/npm/p5@1.9.2/lib/p5.min.js",
+        "https://unpkg.com/p5@1.9.2/lib/p5.min.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.2/p5.min.js"
+      ];
+      let i=0;
+      function tryNext(){
+        if(i>=urls.length){
+          document.getElementById('p5loadfail').style.display='block';
+          return;
+        }
+        const s=document.createElement('script');
+        s.src=urls[i++]; s.async=true;
+        s.onload=()=>{/* p5 calls setup()/draw() */};
+        s.onerror=()=>setTimeout(tryNext, 50);
+        document.head.appendChild(s);
+      }
+      if(document.readyState==="loading"){ document.addEventListener("DOMContentLoaded",tryNext); }
+      else { tryNext(); }
+    })();
+  </script>
+</body>
+</html>

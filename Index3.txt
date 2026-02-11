@@ -1,0 +1,46 @@
+Pause
+Reseed
+Export 100 PNGs
+Export 5 HTML for Mint
+Randomize Traits
+Count
+
+Export IPFS Bundle
+
+density
+
+noise
+        high (50)
+        medium (20)
+        low (2)
+        none (0)
+      
+width
+        thin (0.35)
+        medium (1.2)
+        thick (5)
+      
+curvature
+        high (50)
+        medium (3)
+        low (0.5)
+        none (0)
+      
+speed
+        slow (1)
+        medium (2.5)
+        fast (5)
+      
+trace
+        100% (no fade)
+        Current (classic)
+        0% (clear every frame)
+      
+
+Perf guard
+
+Use seeded traits
+seed
+…
+traits
+—

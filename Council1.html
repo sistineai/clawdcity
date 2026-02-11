@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Council of Nicaea — Generative Series (p5.js)</title>
+  <style>
+    :root{ --bg:#0a0b0c; --panel:#121417; --text:#e7e9ec; --muted:#9aa3ad; --border:#1f2329; }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font:14px/1.35 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto}
+    .wrap{display:grid;grid-template-columns:360px 1fr;gap:16px;padding:16px;min-height:100%}
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    h1{font-size:18px;margin:0 0 12px;letter-spacing:.3px}
+    h2{font-size:12px;margin:16px 0 8px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.7px}
+    .controls{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+    .controls button,.controls input,.controls select{background:#1b1f24;color:var(--text);border:1px solid var(--border);border-radius:12px;padding:10px 12px;cursor:pointer}
+    .controls button:hover{background:#20252b}
+    .row{display:flex;gap:8px;align-items:center}
+    .row input[type="number"]{width:100%}
+    .small{font-size:12px;color:var(--muted)}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#1c2127;border:1px solid var(--border);color:var(--muted);font-size:12px}
+    #canvasWrap{display:flex;align-items:center;justify-content:center;background:radial-gradient(60% 60% at 50% 40%, #0e1115, #07080a);border-radius:16px;border:1px solid var(--border);overflow:hidden;position:relative}
+    #meta{white-space:pre-wrap;background:#0f1114;border:1px dashed #1e2329;border-radius:12px;padding:12px;color:#a7b6bf}
+    .footer{color:var(--muted);margin-top:8px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .spaced{display:flex;justify-content:space-between;align-items:center}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <aside class="panel">
+      <h1>🜁 The Council of Nicaea</h1>
+      <div class="spaced">
+        <div class="badge" id="badgeEdition">Edition — 1 / 50</div>
+        <div class="badge" id="badgeHash">Seed — 00000000</div>
+      </div>
+
+      <h2>Render Controls</h2>
+      <div class="controls">
+        <button id="prevBtn">◀ Prev</button>
+        <button id="nextBtn">Next ▶</button>
+        <button id="rerenderBtn">Re-render</button>
+        <button id="randomBtn">Random</button>
+      </div>
+
+      <div class="grid2" style="margin-top:8px">
+        <div class="row"><label class="small">Canvas Size</label></div>
+        <div class="row"><input id="sizeInput" type="number" min="800" max="2400" step="100" value="1400"/></div>
+      </div>
+
+      <div class="grid2" style="margin-top:8px">
+        <div class="row"><label class="small">Edition # (1–50)</label></div>
+        <div class="row"><input id="editionInput" type="number" min="1" max="50" step="1" value="1"/></div>
+      </div>
+
+      <div class="grid2" style="margin-top:8px">
+        <div class="row"><label class="small">Composition</label></div>
+        <div class="row">
+          <select id="compositionSelect">
+            <option value="auto">Auto (seeded)</option>
+            <option value="haloCross">Halo & Cross</option>
+            <option value="mandala">Mandala</option>
+            <option value="mosaic">Mosaic Tessellation</option>
+            <option value="triskelion">Triskelion Spirals</option>
+          </select>
+        </div>
+      </div>
+
+      <h2>Export</h2>
+      <div class="controls">
+        <button id="pngBtn">Export PNG</button>
+        <button id="jsonBtn">Export JSON</button>
+      </div>
+      <div class="footer small">Deterministic: same edition → same image & traits.</div>
+
+      <h2>Traits</h2>
+      <div id="meta" class="small">(render to see traits)</div>
+    </aside>
+
+    <main class="panel" id="canvasWrap"></main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
+  <script>
+  // ===== Constants / RNG =====
+  const COLLECTION_NAME = 'The Council of Nicaea';
+  const TAU = Math.PI * 2;
+
+  function fnv1a32(str){let h=0x811c9dc5>>>0;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0;}return h>>>0}
+  function toHex32(u){return ('00000000'+(u>>>0).toString(16)).slice(-8)}
+  function mulberry32(seed){let a=seed>>>0;return function(){a|=0;a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t^=t+Math.imul(t^(t>>>7),61|t);return ((t^(t>>>14))>>>0)/4294967296}}
+  function RNG(seed){const r=mulberry32(seed>>>0);return{float:(a=0,b=1)=>a+(b-a)*r(),int:(a,b)=>Math.floor(a+(b-a+1)*r()),pick:arr=>arr[Math.floor(r()*arr.length)],bool:(p=0.5)=>r()<p}}
+
+  // Fixed seeds for 50 editions
+  const EDITIONS = Array.from({length:50},(_,i)=>fnv1a32(`${COLLECTION_NAME}|${i+1}`));
+
+  // Palettes (high-contrast)
+  const PALETTES = [
+    {name:'Verdigris Reliquary', bg:'#0b1011', inks:['#f3e6b3','#a4d6b8','#4c7f70','#1b2b27'], line:'#f8e9bf'},
+    {name:'Obsidian & Gold',    bg:'#0b0c0e', inks:['#f0d57c','#9a8450','#3f3a2b','#19160f'], line:'#ffe9a6'},
+    {name:'Ink & Parchment',    bg:'#111110', inks:['#f1e7c7','#b9ad8a','#7b735b','#2e2a22'], line:'#fff2cc'},
+    {name:'Emerald Cloister',   bg:'#0a1315', inks:['#c8f0dc','#83d7b7','#3a7b66','#153c31'], line:'#d9ffe8'},
+    {name:'Midnight Basilica',  bg:'#0b0e12', inks:['#d5e1f0','#8ea2b7','#516476','#222a35'], line:'#e8f2ff'},
+    {name:'Tyrian Echo',        bg:'#0e0b12', inks:['#f0d57c','#a58bc4','#5b4481','#271a3a'], line:'#ffe9a6'}
+  ];
+
+  // ===== Global State =====
+  let W = 1400, H = 1400;
+  let currentEdition = 1;
+  let seed = EDITIONS[0];
+  let rng = RNG(seed);
+  let palette = PALETTES[0];
+  let traits = null;
+  let composition = 'auto';
+
+  // ===== Helpers =====
+  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+  function setEdition(n){currentEdition=clamp(n,1,50);seed=EDITIONS[currentEdition-1];rng=RNG(seed);updateBadges()}
+  function updateBadges(){
+    document.getElementById('badgeEdition').textContent=`Edition — ${currentEdition} / 50`;
+    document.getElementById('badgeHash').textContent=`Seed — ${toHex32(seed)}`;
+    const ed = document.getElementById('editionInput'); if (ed) ed.value=currentEdition;
+  }
+  function setCanvasSize(px){W=H=clamp(px,800,2400); resizeCanvas(W,H,true)}
+  function hexA(hex,a){ const c=color(hex); return color(red(c), green(c), blue(c), a); }
+  function bgClear(){ background(palette.bg); }
+
+  function vignette(strength=0.55){
+    noStroke();
+    for(let i=0;i<140;i++){
+      const t=i/139;
+      const r = Math.hypot(W,H)*0.75*(1+t*0.28);
+      const a = (t*strength)*255;
+      fill(0,a);
+      circle(W/2, H/2, r*2);
+    }
+  }
+  function glowDot(x,y,r,col,layers=6){
+    noStroke();
+    for(let i=layers;i>=1;i--){
+      const t = i/layers;
+      const a = 18 + t*34;
+      fill(red(col),green(col),blue(col),a);
+      circle(x,y,r*2*(1+(1-t)*0.16));
+    }
+  }
+  function pickPalette(r){ const order=[0,1,3,2,4,5]; return PALETTES[order[r.int(0,order.length-1)]]; }
+
+  // ===== Compositions (all very visible) =====
+  function compHaloCross(r){
+    bgClear();
+    const cx=W/2, cy=H/2; const baseR=Math.min(W,H)*r.float(0.24,0.34);
+
+    // halos
+    noFill();
+    const rings=r.int(5,8);
+    for(let i=0;i<rings;i++){
+      const rr=baseR*(1+i*r.float(0.16,0.26));
+      stroke(hexA(palette.line, Math.max(120,240-i*22)));
+      strokeWeight(r.float(2.2,4.0));
+      circle(cx,cy,rr*2);
+      const n=r.int(9,16);
+      for(let k=0;k<n;k++){
+        const a=(k/n)*TAU + r.float(-0.04,0.04);
+        stroke(hexA(palette.inks[k%palette.inks.length], 200));
+        arc(cx,cy, rr*2.05, rr*2.05, a-0.06, a+0.06);
+      }
+    }
+
+    // cross
+    const arm=baseR*1.2, thick=r.float(0.03,0.06)*W;
+    push(); translate(cx,cy); rotate(r.float(-0.22,0.22));
+      stroke(hexA(palette.line,255)); strokeWeight(r.float(3,6));
+      line(-arm,0,arm,0); line(0,-arm,0,arm);
+      strokeWeight(thick); stroke(hexA(palette.inks[0],60));
+      line(-arm,0,arm,0); line(0,-arm,0,arm);
+      const capR=thick*0.5; noStroke(); fill(hexA(palette.inks[0],120));
+      circle(-arm,0,capR*2); circle(arm,0,capR*2); circle(0,-arm,capR*2); circle(0,arm,capR*2);
+    pop();
+
+    // rosette
+    const petals=r.int(10,16), petR=baseR*r.float(0.36,0.52);
+    for(let i=0;i<petals;i++){
+      const a=(i/petals)*TAU + r.float(-0.02,0.02);
+      const x=cx+Math.cos(a)*petR*0.72, y=cy+Math.sin(a)*petR*0.72;
+      glowDot(x,y, petR*r.float(0.4,0.6), color(palette.inks[(i+1)%palette.inks.length]), 6);
+    }
+
+    vignette(r.float(0.45,0.65));
+    return {motif:'Halo & Cross', rings, petals, crossThickness:+(thick/W).toFixed(3)};
+  }
+
+  function compMandala(r){
+    bgClear();
+    const cx=W/2, cy=H/2;
+    const order=r.int(6,10), layers=r.int(6,10), base=Math.min(W,H)*r.float(0.14,0.2);
+    noFill();
+    for(let L=0; L<layers; L++){
+      const rad=base + L*Math.min(W,H)*r.float(0.07,0.11);
+      strokeWeight(r.float(2.0,4.5));
+      const hue=palette.inks[r.int(0,palette.inks.length-1)];
+      stroke(hexA(hue, Math.max(130,255-L*16)));
+      circle(cx,cy,rad*2);
+      const spikes=order*r.int(2,4);
+      for(let i=0;i<spikes;i++){
+        const a=(i/spikes)*TAU + r.float(-0.01,0.01);
+        const r1=rad*r.float(0.74,0.96), r2=rad*r.float(1.08,1.36);
+        const x1=cx+Math.cos(a)*r1, y1=cy+Math.sin(a)*r1;
+        const x2=cx+Math.cos(a)*r2, y2=cy+Math.sin(a)*r2;
+        stroke(hexA(palette.line,230)); line(x1,y1,x2,y2);
+        if(r.bool(0.45)){ stroke(hexA(hue,220)); arc(cx,cy,r2*2,r2*2,a-0.07,a+0.07); }
+      }
+    }
+    const petals=order*r.int(1,2);
+    for(let i=0;i<petals;i++){
+      const a=(i/petals)*TAU + r.float(-0.02,0.02);
+      const rp=Math.min(W,H)*r.float(0.07,0.12);
+      const x=cx+Math.cos(a)*rp*0.48, y=cy+Math.sin(a)*rp*0.48;
+      glowDot(x,y, rp*0.66, color(palette.inks[(i)%palette.inks.length]), 6);
+    }
+    vignette(r.float(0.55,0.75));
+    return {motif:'Mandala', symmetryOrder:order, layers};
+  }
+
+  function compMosaic(r){
+    bgClear();
+    const cell=r.int(44,76), jitter=r.float(0.02,0.28)*cell; noStroke();
+    for(let y=0;y<H;y+=cell){
+      for(let x=0;x<W;x+=cell){
+        const jx=x+r.float(-jitter,jitter), jy=y+r.float(-jitter,jitter);
+        const w=cell+r.float(-cell*0.2,cell*0.2), h=cell+r.float(-cell*0.2,cell*0.2);
+        const col=palette.inks[r.int(0,palette.inks.length-1)];
+        fill(hexA(col, r.int(160,230))); rect(jx,jy,w,h, r.float(6,18));
+        if(r.bool(0.38)){ const cx=jx+w/2, cy=jy+h/2; const rr=Math.min(w,h)*r.float(0.2,0.55); fill(hexA(palette.line, r.int(120,200))); circle(cx,cy,rr*2); }
+      }
+    }
+    stroke(hexA(palette.line,220)); noFill(); strokeWeight(r.float(2.2,4.0));
+    const arcs=r.int(12,20);
+    for(let i=0;i<arcs;i++){
+      const rr=Math.min(W,H)*r.float(0.16,0.52), cx=r.float(rr,W-rr), cy=r.float(rr,H-rr);
+      const a0=r.float(0,TAU), a1=a0+r.float(0.45,1.35); arc(cx,cy,rr*2,rr*2,a0,a1);
+    }
+    vignette(r.float(0.55,0.75));
+    return {motif:'Mosaic Tessellation', cell, arcs};
+  }
+
+  function compTriskelion(r){
+    bgClear();
+    const cx=W/2,cy=H/2; const arms=3, turns=r.float(1.9,3.1);
+    strokeWeight(r.float(2.2,4.0)); stroke(hexA(palette.line,240)); noFill();
+    for(let a=0;a<arms;a++){
+      push(); translate(cx,cy); rotate(a*(TAU/arms)+r.float(-0.15,0.15));
+      const steps=720; beginShape();
+      for(let i=0;i<steps;i++){
+        const t=i/(steps-1), ang=t*turns*TAU, rad=t*Math.min(W,H)*r.float(0.18,0.48);
+        const x=Math.cos(ang)*rad, y=Math.sin(ang)*rad;
+        if(i%70===0){ stroke(hexA(palette.inks[r.int(0,palette.inks.length-1)],230)); }
+        vertex(x,y);
+      }
+      endShape(); pop();
+    }
+    const nodes=r.int(7,12);
+    for(let i=0;i<nodes;i++){
+      const ang=(i/nodes)*TAU + rng.float(0,TAU/nodes), rr=Math.min(W,H)*rng.float(0.2,0.44);
+      const x=cx+Math.cos(ang)*rr, y=cy+Math.sin(ang)*rr;
+      glowDot(x,y, rng.float(12,26), color(palette.inks[rng.int(0,palette.inks.length-1)]), 6);
+    }
+    vignette(r.float(0.5,0.7));
+    return {motif:'Triskelion Spirals', arms, turns:+turns.toFixed(2), nodes};
+  }
+
+  const COMPOSITIONS = { haloCross:compHaloCross, mandala:compMandala, mosaic:compMosaic, triskelion:compTriskelion };
+  function pickComposition(r){ const weighted=['haloCross','haloCross','mandala','mandala','mosaic','triskelion']; return weighted[r.int(0,weighted.length-1)] }
+
+  // ===== Render Pipeline =====
+  function render(){
+    rng = RNG(seed);
+    palette = pickPalette(rng);
+    const choice = (composition==='auto') ? pickComposition(rng) : composition;
+    const t = COMPOSITIONS[choice](rng);
+    traits = {
+      collection: COLLECTION_NAME,
+      edition: currentEdition,
+      seedHex: toHex32(seed),
+      palette: palette.name,
+      composition: t.motif,
+      attributes: t
+    };
+    document.getElementById('meta').textContent = JSON.stringify(traits, null, 2);
+  }
+
+  // ===== p5 Global Mode =====
+  function setup(){
+    pixelDensity(1);
+    const c = createCanvas(W,H);
+    c.parent('canvasWrap');
+    noLoop();
+    applyURLParams();
+    render();      // draw immediately on load
+  }
+
+  function draw(){ /* one-shot via render(); kept empty */ }
+
+  // ===== UI / URL =====
+  function applyURLParams(){
+    const params=new URLSearchParams(location.search);
+    const e=parseInt(params.get('edition')); if(!isNaN(e)) setEdition(e);
+    const size=parseInt(params.get('size')); if(!isNaN(size)) setCanvasSize(size);
+    composition=(params.get('composition')||'auto');
+    document.getElementById('compositionSelect').value=composition;
+    document.getElementById('sizeInput').value=W;
+    updateBadges();
+  }
+
+  document.getElementById('prevBtn').onclick = ()=>{ setEdition(currentEdition-1); render(); };
+  document.getElementById('nextBtn').onclick = ()=>{ setEdition(currentEdition+1); render(); };
+  document.getElementById('rerenderBtn').onclick = ()=>{ render(); };
+  document.getElementById('randomBtn').onclick = ()=>{ setEdition(Math.floor(1+Math.random()*50)); render(); };
+  document.getElementById('sizeInput').onchange = e=>{ setCanvasSize(parseInt(e.target.value)||1400); render(); };
+  document.getElementById('editionInput').onchange = e=>{ setEdition(parseInt(e.target.value)||1); render(); };
+  document.getElementById('compositionSelect').onchange = e=>{ composition=e.target.value||'auto'; render(); };
+
+  // ===== Export =====
+  function download(filename,text){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'application/json'})); a.download=filename; a.click(); }
+  document.getElementById('pngBtn').onclick = ()=>{
+    const name = `${COLLECTION_NAME.replace(/\s+/g,'_')}_${String(currentEdition).padStart(2,'0')}_${toHex32(seed)}.png`;
+    saveCanvas(name);
+  };
+  document.getElementById('jsonBtn').onclick = ()=>{
+    const meta = {
+      name: `${COLLECTION_NAME} #${currentEdition}`,
+      description: `${COLLECTION_NAME} — generative p5.js. Edition ${currentEdition} of 50.`,
+      edition: currentEdition,
+      seed: toHex32(seed),
+      palette: palette.name,
+      composition: traits.composition,
+      attributes: traits.attributes
+    };
+    const name = `${COLLECTION_NAME.replace(/\s+/g,'_')}_${String(currentEdition).padStart(2,'0')}_${toHex32(seed)}.json`;
+    download(name, JSON.stringify(meta, null, 2));
+  };
+  </script>
+</body>
+</html>

@@ -1,0 +1,1770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Perlin Flow — Mint-Ready (HTML + PNG + Metadata + GIF/WebM)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    html,body{margin:0;height:100%;background:#0b0b10}
+    canvas{display:block}
+    .ui{
+      position:fixed;left:12px;top:12px;display:flex;gap:8px;flex-wrap:wrap;
+      font:14px/1.2 system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#fff;z-index:10
+    }
+    .ui button,.ui select,.ui label,.ui input{
+      background:#1a1a27;border:1px solid #34344a;color:#fff;border-radius:10px;
+      padding:8px 10px;cursor:pointer
+    }
+    .ui input,.ui select{width:120px;padding:6px 10px}
+    .pill{opacity:.9;padding:6px 8px;border-radius:10px;border:1px solid #34344a;background:#13131d}
+    .stack{display:flex;flex-direction:column;gap:4px}
+    .stack small{opacity:.75}
+    .checkbox{display:flex;align-items:center;gap:6px;padding:8px 10px}
+    .checkbox input{margin:0}
+    .field{display:flex;align-items:center;gap:6px}
+    .field label{background:transparent;border:none;padding:0;cursor:default;opacity:.8}
+    .disabled{opacity:.5;pointer-events:none}
+    #p5loadfail{
+      position:fixed;left:12px;bottom:12px;background:#2a1b1b;border:1px solid #5c2f2f;color:#ffd7d7;
+      padding:10px 12px;border-radius:10px;display:none;z-index:20
+    }
+    .mini{width:70px}
+    .group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .tray{border:1px dashed #34344a;border-radius:12px;padding:8px 10px}
+    .tray h4{margin:0 0 6px 0;font-weight:600;opacity:.85}
+    .tight .field{gap:4px}
+    .tight .field input{width:76px}
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+</head>
+<body>
+  <div class="ui">
+    <button id="toggle">Pause</button>
+    <button id="reseed">Reseed</button>
+    <button id="export">Export 100 PNGs</button>
+    <button id="exportHTML5">Export 5 HTML for Mint</button>
+    <button id="randomize">Randomize Traits</button>
+
+    <div class="field">
+      <label for="ipfsCount">Count</label>
+      <input id="ipfsCount" class="mini" type="number" min="1" max="50" step="1" value="5"/>
+    </div>
+    <button id="exportIPFS">Export IPFS Bundle</button>
+    <button id="exportMetaOnly">Metadata Only (CID)</button>
+    <button id="rebuildBundle">Rebuild Exact Bundle</button>
+
+    <div class="field">
+      <label for="pngRes">PNG px</label>
+      <input id="pngRes" class="mini" type="number" min="512" max="8192" step="256" value="2048"/>
+    </div>
+    <div class="field">
+      <label for="pngDensity">DPI</label>
+      <input id="pngDensity" class="mini" type="number" min="1" max="4" step="1" value="2"/>
+    </div>
+    <button id="exportIPFSHiRes">Export IPFS Bundle (Hi-Res PNGs)</button>
+
+    <!-- GIF + WebM controls -->
+    <div class="field">
+      <label for="gifSize">GIF/WebM px</label>
+      <input id="gifSize" class="mini" type="number" min="512" max="4096" step="256" value="2048"/>
+    </div>
+    <div class="field">
+      <label for="gifFps">FPS</label>
+      <input id="gifFps" class="mini" type="number" min="12" max="60" step="1" value="24"/>
+    </div>
+    <button id="exportGIF30">Export 30s GIF</button>
+    <button id="exportWEBM30">Export 30s WebM</button>
+
+    <select id="palette"></select>
+
+    <div class="field"><label for="densityInput">density</label><input id="densityInput" type="number" min="1" max="12" step="1"/></div>
+
+    <div class="field">
+      <label for="noiseSelect">noise</label>
+      <select id="noiseSelect">
+        <option value="high">high (50)</option>
+        <option value="medium" selected>medium (20)</option>
+        <option value="low">low (2)</option>
+        <option value="none">none (0)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="widthSelect">width</label>
+      <select id="widthSelect">
+        <option value="thin">thin (0.35)</option>
+        <option value="medium" selected>medium (1.2)</option>
+        <option value="thick">thick (5)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="curvatureSelect">curvature</label>
+      <select id="curvatureSelect">
+        <option value="high">high (50)</option>
+        <option value="medium" selected>medium (3)</option>
+        <option value="low">low (0.5)</option>
+        <option value="none">none (0)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="speedSelect">speed</label>
+      <select id="speedSelect">
+        <option value="slow">slow (1)</option>
+        <option value="medium" selected>medium (2.5)</option>
+        <option value="fast">fast (5)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="traceSelect">trace</label>
+      <select id="traceSelect">
+        <option value="full">100% (no fade)</option>
+        <option value="current" selected>Current (classic)</option>
+        <option value="none">0% (clear every frame)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="vignetteSelect">vignette</label>
+      <select id="vignetteSelect">
+        <option value="off" selected>off</option>
+        <option value="soft">soft</option>
+        <option value="medium">medium</option>
+        <option value="strong">strong</option>
+        <option value="wide">wide</option>
+        <option value="oval">oval</option>
+      </select>
+    </div>
+
+    <div class="group">
+      <label class="checkbox"><input type="checkbox" id="glow"/> Glow</label>
+      <label class="checkbox"><input type="checkbox" id="strokes"/> Strokes</label>
+      <label class="checkbox"><input type="checkbox" id="paletteCycle"/> Palette Cycle</label>
+      <label class="checkbox"><input type="checkbox" id="pulse"/> Pulse</label>
+
+      <label class="checkbox"><input type="checkbox" id="shadow"/> Shadow</label>
+      <label class="checkbox"><input type="checkbox" id="scanlines"/> Scanlines</label>
+      <label class="checkbox"><input type="checkbox" id="kaleido"/> Kaleido</label>
+      <label class="checkbox"><input type="checkbox" id="dashes"/> Dashes</label>
+      <label class="checkbox"><input type="checkbox" id="orbit"/> Orbit</label>
+      <label class="checkbox"><input type="checkbox" id="edgeRepel"/> Edge Repel</label>
+      <label class="checkbox"><input type="checkbox" id="jitterPlus"/> Jitter+</label>
+      <label class="checkbox"><input type="checkbox" id="colorShift"/> Color Shift</label>
+      <label class="checkbox"><input type="checkbox" id="noiseShuffle"/> Noise Shuffle</label>
+    </div>
+
+    <div class="tray tight">
+      <h4>Scalable Traits</h4>
+      <div class="group">
+        <div class="field"><label for="hueRotateInput">hueRotate</label><input id="hueRotateInput" type="number" step="0.05" min="0" max="1" value="0"/></div>
+        <div class="field"><label for="lumaPulseInput">lumaPulse</label><input id="lumaPulseInput" type="number" step="0.05" min="0" max="1" value="0"/></div>
+        <div class="field"><label for="sizeJitterInput">sizeJitter</label><input id="sizeJitterInput" type="number" step="0.1" min="0" max="2" value="0.3"/></div>
+        <div class="field"><label for="alphaJitterInput">alphaJitter</label><input id="alphaJitterInput" type="number" step="0.05" min="0" max="1" value="0.2"/></div>
+        <div class="field"><label for="warpStrengthInput">warpStrength</label><input id="warpStrengthInput" type="number" step="0.1" min="0" max="5" value="0.6"/></div>
+        <div class="field"><label for="spiralStrengthInput">spiralStrength</label><input id="spiralStrengthInput" type="number" step="0.1" min="0" max="2" value="0"/></div>
+        <div class="field"><label for="centerGravityInput">centerGravity</label><input id="centerGravityInput" type="number" step="0.1" min="0" max="2" value="0"/></div>
+        <div class="field"><label for="edgeFadeInput">edgeFade</label><input id="edgeFadeInput" type="number" step="0.05" min="0" max="1" value="0"/></div>
+        <div class="field"><label for="paletteShiftSpeedInput">paletteShiftSpeed</label><input id="paletteShiftSpeedInput" type="number" step="0.1" min="0" max="3" value="1"/></div>
+        <div class="field"><label for="dashPeriodInput">dashPeriod</label><input id="dashPeriodInput" type="number" step="1" min="2" max="40" value="10"/></div>
+        <div class="field"><label for="dashDutyInput">dashDuty</label><input id="dashDutyInput" type="number" step="0.05" min="0.05" max="0.95" value="0.5"/></div>
+        <div class="field"><label for="glowStrengthInput">glowStrength</label><input id="glowStrengthInput" type="number" step="0.1" min="0" max="4" value="1"/></div>
+        <div class="field"><label for="strokeBoostInput">strokeBoost</label><input id="strokeBoostInput" type="number" step="0.1" min="0.2" max="3" value="1"/></div>
+        <div class="field"><label for="trailHoldInput">trailHold</label><input id="trailHoldInput" type="number" step="0.05" min="0" max="1" value="0"/></div>
+        <div class="field"><label for="noiseWobbleInput">noiseWobble</label><input id="noiseWobbleInput" type="number" step="0.1" min="0" max="5" value="0"/></div>
+        <div class="field"><label for="flowFlipRateInput">flowFlipRate</label><input id="flowFlipRateInput" type="number" step="0.005" min="0" max="0.2" value="0"/></div>
+        <div class="field"><label for="outburstRateInput">outburstRate</label><input id="outburstRateInput" type="number" step="0.002" min="0" max="0.05" value="0"/></div>
+        <div class="field"><label for="layerParallaxInput">layerParallax</label><input id="layerParallaxInput" type="number" step="0.05" min="0" max="1" value="0"/></div>
+        <div class="field"><label for="centerGlowInput">centerGlow</label><input id="centerGlowInput" type="number" step="0.05" min="0" max="1" value="0"/></div>
+      </div>
+    </div>
+
+    <label class="checkbox"><input type="checkbox" id="perfGuard" checked/> Perf guard</label>
+    <label class="checkbox"><input type="checkbox" id="useSeeded"/> Use seeded traits</label>
+
+    <div class="stack pill"><small>seed</small><span id="seedlabel">…</span></div>
+    <div class="stack pill"><small>traits</small><span id="traitslabel">—</span></div>
+    <div class="pill" id="progress" style="display:none;">Exporting… 0/100</div>
+  </div>
+
+  <div id="p5loadfail">p5.js failed to load from CDN. Check your internet or try reloading — the exporter HTMLs include p5 locally.</div>
+
+  <script>
+/* ======================== Utilities & RNG ======================== */
+function getHash(){
+  const u=new URL(window.location.href);
+  const h=u.searchParams.get("hash");
+  if(h&&/^0x[a-fA-F0-9]{64}$/.test(h))return h;
+  const r=crypto.getRandomValues(new Uint8Array(32));
+  return "0x"+Array.from(r).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+function seedFromHash(hx){let acc=0>>>0;for(let i=2;i<hx.length;i+=8)acc^=parseInt(hx.slice(i,i+8),16)>>>0;return acc>>>0}
+function rngFromHash(hex){let h=BigInt(hex);let s=Number((h^(h>>64n))%4294967291n)>>>0;return function(){s+=0x6D2B79F5;s>>>=0;let t=Math.imul(s^s>>>15,1|s);t^=t+Math.imul(t^t>>>7,61|t);return((t^t>>>14)>>>0)/4294967296}}
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const pick=(arr)=>arr[Math.floor(Math.random()*arr.length)];
+function setSeedInURL(h){const u=new URL(window.location.href);u.searchParams.set("hash",h);history.replaceState(null,"",u);}
+
+/* ======================== Palettes ======================== */
+const PALETTES = [
+  {name:"Aurora (purple/blue/white)",cols:["#45217C","#0799F2","#ffffff"],bg:"#150832"},
+  {name:"Ember",cols:["#ff6b6b","#ffd166","#ffffff"],bg:"#1a0e0e"},
+  {name:"Seafoam",cols:["#00c2a8","#2f6db0","#e6fff7"],bg:"#06131a"},
+  {name:"Neon Dusk",cols:["#ff00e5","#00f0ff","#ffffff"],bg:"#0b0b10"},
+  {name:"Sand & Sky",cols:["#c57b57","#2a9d8f","#f1f1f1"],bg:"#0e0f1a"},
+  {name:"Monochrome Smoke",cols:["#e5e5e5","#a8a8a8","#ffffff"],bg:"#0c0c0c"},
+  {name:"Solar Flare",cols:["#ff6a00","#ffaa00","#ffffff"],bg:"#120900"},
+  {name:"Glacier Night",cols:["#0d1b2a","#1b263b","#e0e1dd"],bg:"#05080f"},
+  {name:"Moss & Ember",cols:["#2e7d32","#ef6c00","#ffffff"],bg:"#0d0f0a"},
+  {name:"Candy Pop",cols:["#ff4d6d","#00d1ff","#ffffff"],bg:"#0b0b10"},
+  {name:"Noir Ice",cols:["#e0fbfc","#98c1d9","#3d5a80"],bg:"#0a0e14"},
+  {name:"Wild Spectrum",cols:["#ff004c","#ff8c00","#ffee00","#00e676","#00c2ff","#8e00ff","#ff00e5","#00ffa8"],bg:"#0a0a0e"},
+  {name:"Desert Mirage",cols:["#b08968","#e9c46a","#264653"],bg:"#0f0a07"},
+  {name:"Iceberry",cols:["#a0c4ff","#bdb2ff","#ffadad"],bg:"#0b1020"},
+  {name:"Jungle Bloom",cols:["#2e7d32","#81c784","#ffe082"],bg:"#08140c"},
+  {name:"Hyper Neon Six",cols:["#ff006e","#ffbe0b","#fb5607","#00f5d4","#3a86ff","#8338ec"],bg:"#07070a"},
+  {name:"Pastel Meadow Six",cols:["#a0e7e5","#b4f8c8","#fbe7c6","#ffd6e0","#c3bef0","#caffbf"],bg:"#0c0f10"},
+  {name:"Coral Reef Six",cols:["#ff6f61","#ffb88a","#ffd6a5","#8ecae6","#219ebc","#00afb9"],bg:"#071018"},
+  {name:"Autumn Grove Six",cols:["#7f5539","#b08968","#e5989b","#ffb703","#e9c46a","#2a9d8f"],bg:"#0e0b07"},
+  {name:"Nocturne Six",cols:["#0ea5e9","#22d3ee","#a78bfa","#818cf8","#34d399","#f472b6"],bg:"#050912"},
+  {name:"Retro Vapor Six",cols:["#ff71ce","#01cdfe","#05ffa1","#b967ff","#f5f7b2","#ffd6e0"],bg:"#0a0810"},
+  {name:"Cyberpastel Six",cols:["#ffd6e0","#e2f0cb","#cde7f0","#fff1a6","#d7c0ff","#c1fff2"],bg:"#0b0c10"},
+  {name:"Forest Mist Six",cols:["#2a9d8f","#264653","#8ab17d","#a7c957","#bde0fe","#cad2c5"],bg:"#090e0b"},
+  {name:"Lava Glow Six",cols:["#ff4d00","#ff7300","#ff9e00","#ffd166","#ffadad","#ff6b6b"],bg:"#120807"},
+  {name:"Aurora Borealis Six",cols:["#0ea5e9","#22d3ee","#34d399","#4ade80","#a7f3d0","#60a5fa"],bg:"#050a0e"},
+  {name:"Seaside Sunset Six",cols:["#023e8a","#0077b6","#00b4d8","#ff7b00","#ffb703","#ffd166"],bg:"#070b10"},
+  {name:"Prismatic Pop Six",cols:["#ff3cac","#784ba0","#2b86c5","#00c2ff","#00ffa8","#f9ed69"],bg:"#0a0812"},
+  {name:"Midnight Candy Six",cols:["#ff4d6d","#c77dff","#6a4c93","#3a0ca3","#00bbf9","#48cae4"],bg:"#0a0912"},
+  {name:"Citrus Orchard Six",cols:["#ffd166","#fca311","#e85d04","#90be6d","#43aa8b","#577590"],bg:"#0c1009"},
+  {name:"Steel Velvet Six",cols:["#e9ecef","#adb5bd","#6c757d","#495057","#b5179e","#7209b7"],bg:"#0b0b0c"},
+  /* light backgrounds */
+  {name:"Snow Day Light",cols:["#1e3a8a","#0284c7","#22c55e","#ef4444","#a855f7"],bg:"#ffffff"},
+  {name:"Lemon Meringue Light",cols:["#2d6a4f","#40916c","#ff6b6b","#ffd166","#1d3557"],bg:"#fffbea"},
+  {name:"Porcelain Flora",cols:["#2a9d8f","#e76f51","#e9c46a","#264653","#8ab17d","#b56576"],bg:"#f7f5f2"},
+  {name:"Sky Pastel Light",cols:["#a0c4ff","#bdb2ff","#ffc6ff","#ffadad","#ffd6a5","#caffbf"],bg:"#f8fbff"},
+  {name:"Paper Mint Light",cols:["#06d6a0","#118ab2","#ef476f","#ffd166"],bg:"#f4fff8"},
+  {name:"Sorbet Daylight",cols:["#ff8fab","#ffcad4","#ffe5ec","#a0e7e5","#b4f8c8","#fff1a6"],bg:"#fff5f7"},
+  {name:"Cotton Clouds Light",cols:["#3a86ff","#8338ec","#ff006e","#fb5607","#ffbe0b"],bg:"#f6f7fb"},
+  {name:"Creamsicle Noon",cols:["#ff7b00","#ffb703","#ffd166","#eba0ac","#6d597a"],bg:"#fff6e8"},
+  {name:"Marshmallow Field",cols:["#00b4d8","#0077b6","#ef476f","#06d6a0","#ffd166","#8ac926","#1982c4"],bg:"#fafafa"},
+  {name:"Powder Sky",cols:["#2b59c3","#ef476f","#06d6a0"],bg:"#eef6ff"}
+];
+
+/* ======================== Trait Mappings ======================== */
+const NOISE_OPTIONS = [
+  {label:"high",   value:50},
+  {label:"medium", value:20},
+  {label:"low",    value:2},
+  {label:"none",   value:0},
+];
+const CURVATURE_OPTIONS = [
+  {label:"high",   value:50},
+  {label:"medium", value:3},
+  {label:"low",    value:0.5},
+  {label:"none",   value:0},
+];
+const WIDTH_OPTIONS = [
+  {label:"thin",   value:0.35},
+  {label:"medium", value:1.2},
+  {label:"thick",  value:5},
+];
+const noiseValueFromLabel = (label)=> (NOISE_OPTIONS.find(x=>x.label===label)||NOISE_OPTIONS[1]).value;
+const curvatureValueFromLabel = (label)=> (CURVATURE_OPTIONS.find(x=>x.label===label)||CURVATURE_OPTIONS[1]).value;
+const widthValueFromLabel = (label)=> (WIDTH_OPTIONS.find(x=>x.label===label)||WIDTH_OPTIONS[1]).value;
+function speedValueFromLabel(label){ return label==="slow"?1 : label==="fast"?5 : 2.5; }
+
+/* ======================== App State ======================== */
+let HASH,R,palIndex=0;
+let noiseScale=800, nums=240;
+let groups=[], running=true, CANVAS;
+let G_PULSE_MUL = 1;
+let BASE_SEED_INT = 1;
+let scanLayer = null;
+let LAST_RUN = null; // stores exact seeds/traits to rebuild
+
+const TRAITS={
+  palette:"", density:3,
+  noise:20, noiseLabel:"medium",
+  trackWidth:1.2, trackWidthLabel:"medium",
+  curvature:3, curvatureLabel:"medium",
+  speed:2.5, speedLabel:"medium",
+  trace:"current", maturity:1.0,
+  vignetteMode:"off",
+  get vignette(){ return this.vignetteMode!=="off"; },
+
+  glow:false, strokes:false, paletteCycle:false, pulse:false,
+  shadow:false, scanlines:false, kaleido:false, dashes:false,
+  orbit:false, edgeRepel:false, jitterPlus:false, colorShift:false, noiseShuffle:false,
+
+  // scalable extras
+  hueRotate:0,
+  lumaPulse:0,
+  sizeJitter:0.3,
+  alphaJitter:0.2,
+  warpStrength:0.6,
+  spiralStrength:0,
+  centerGravity:0,
+  edgeFade:0,
+  paletteShiftSpeed:1,
+  dashPeriod:10,
+  dashDuty:0.5,
+  glowStrength:1,
+  strokeBoost:1,
+  trailHold:0,
+  noiseWobble:0,
+  flowFlipRate:0,
+  outburstRate:0,
+  layerParallax:0,
+  centerGlow:0
+};
+let useSeeded=false;
+let perfGuard=true;
+
+/* ======================== Color helpers ======================== */
+function hexToRgb(hex){
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return m?{r:parseInt(m[1],16),g:parseInt(m[2],16),b:parseInt(m[3],16)}:{r:255,g:255,b:255};
+}
+function rgbToHex(r,g,b){return '#'+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');}
+function rgbToHsl(r,g,b){
+  r/=255;g/=255;b/=255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b);
+  let h,s,l=(max+min)/2;
+  if(max===min){h=s=0;}
+  else{
+    const d=max-min;
+    s=l>0.5?d/(2-max-min):d/(max+min);
+    switch(max){
+      case r: h=(g-b)/d+(g<b?6:0); break;
+      case g: h=(b-r)/d+2; break;
+      case b: h=(r-g)/d+4; break;
+    }
+    h/=6;
+  }
+  return {h,s,l};
+}
+function hslToRgb(h,s,l){
+  let r,g,b;
+  if(s===0){r=g=b=l;}
+  else{
+    const hue2rgb=(p,q,t)=>{if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<1/2)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p;};
+    const q=l<0.5?l*(1+s):l+s-l*s;
+    const p=2*l-q;
+    r=hue2rgb(p,q,h+1/3); g=hue2rgb(p,q,h); b=hue2rgb(p,q,h-1/3);
+  }
+  return {r:Math.round(r*255),g:Math.round(g*255),b:Math.round(b*255)};
+}
+function rotateHexHue(hex,deg){
+  const {r,g,b}=hexToRgb(hex);
+  let {h,s,l}=rgbToHsl(r,g,b);
+  h=(h+(deg/360))%1; if(h<0)h+=1;
+  const {r:rr,g:gg,b:bb}=hslToRgb(h,s,l);
+  return rgbToHex(rr,gg,bb);
+}
+function adjustHexLuma(hex, mul){
+  const {r,g,b}=hexToRgb(hex);
+  let {h,s,l}=rgbToHsl(r,g,b);
+  l = clamp(l*mul, 0, 1);
+  const {r:rr,g:gg,b:bb}=hslToRgb(h,s,l);
+  return rgbToHex(rr,gg,bb);
+}
+
+/* ======================== p5 setup & UI ======================== */
+let seedLabel,traitsLabel,paletteSelect,toggleBtn,reseedBtn,exportBtn,exportHTML5Btn,exportIPFSBtn,exportMetaOnlyBtn,rebuildBtn,progressEl,useSeededCheckbox,randomizeBtn,perfGuardCheckbox,ipfsCountInput,exportIPFSHiResBtn,pngResInput,pngDensityInput;
+let exportGIF30Btn, exportWEBM30Btn, gifSizeInput,gifFpsInput;
+let densityInput,traceSelect,speedSelect,noiseSelect,curvatureSelect,widthSelect,vignetteSelect;
+let glowCb, strokesCb, paletteCycleCb, pulseCb, shadowCb, scanlinesCb, kaleidoCb, dashesCb, orbitCb, edgeRepelCb, jitterPlusCb, colorShiftCb, noiseShuffleCb;
+// scalable refs
+let hueRotateInput,lumaPulseInput,sizeJitterInput,alphaJitterInput,warpStrengthInput,spiralStrengthInput,centerGravityInput,edgeFadeInput,paletteShiftSpeedInput,dashPeriodInput,dashDutyInput,glowStrengthInput,strokeBoostInput,trailHoldInput,noiseWobbleInput,flowFlipRateInput,outburstRateInput,layerParallaxInput,centerGlowInput;
+
+function setup(){
+  // UI refs
+  toggleBtn=document.getElementById("toggle");
+  reseedBtn=document.getElementById("reseed");
+  exportBtn=document.getElementById("export");
+  exportHTML5Btn=document.getElementById("exportHTML5");
+  exportIPFSBtn=document.getElementById("exportIPFS");
+  exportMetaOnlyBtn=document.getElementById("exportMetaOnly");
+  rebuildBtn=document.getElementById("rebuildBundle");
+  randomizeBtn=document.getElementById("randomize");
+  seedLabel=document.getElementById("seedlabel");
+  traitsLabel=document.getElementById("traitslabel");
+  paletteSelect=document.getElementById("palette");
+  progressEl=document.getElementById("progress");
+  useSeededCheckbox=document.getElementById("useSeeded");
+  perfGuardCheckbox=document.getElementById("perfGuard");
+  ipfsCountInput=document.getElementById("ipfsCount");
+
+  densityInput=document.getElementById("densityInput");
+  traceSelect=document.getElementById("traceSelect");
+  speedSelect=document.getElementById("speedSelect");
+  noiseSelect=document.getElementById("noiseSelect");
+  curvatureSelect=document.getElementById("curvatureSelect");
+  widthSelect=document.getElementById("widthSelect");
+  vignetteSelect=document.getElementById("vignetteSelect");
+
+  glowCb=document.getElementById("glow");
+  strokesCb=document.getElementById("strokes");
+  paletteCycleCb=document.getElementById("paletteCycle");
+  pulseCb=document.getElementById("pulse");
+  shadowCb=document.getElementById("shadow");
+  scanlinesCb=document.getElementById("scanlines");
+  kaleidoCb=document.getElementById("kaleido");
+  dashesCb=document.getElementById("dashes");
+  orbitCb=document.getElementById("orbit");
+  edgeRepelCb=document.getElementById("edgeRepel");
+  jitterPlusCb=document.getElementById("jitterPlus");
+  colorShiftCb=document.getElementById("colorShift");
+  noiseShuffleCb=document.getElementById("noiseShuffle");
+
+  exportIPFSHiResBtn=document.getElementById("exportIPFSHiRes");
+  pngResInput=document.getElementById("pngRes");
+  pngDensityInput=document.getElementById("pngDensity");
+
+  // GIF/WebM
+  exportGIF30Btn=document.getElementById("exportGIF30");
+  exportWEBM30Btn=document.getElementById("exportWEBM30");
+  gifSizeInput=document.getElementById("gifSize");
+  gifFpsInput=document.getElementById("gifFps");
+
+  // scalable inputs
+  hueRotateInput=document.getElementById("hueRotateInput");
+  lumaPulseInput=document.getElementById("lumaPulseInput");
+  sizeJitterInput=document.getElementById("sizeJitterInput");
+  alphaJitterInput=document.getElementById("alphaJitterInput");
+  warpStrengthInput=document.getElementById("warpStrengthInput");
+  spiralStrengthInput=document.getElementById("spiralStrengthInput");
+  centerGravityInput=document.getElementById("centerGravityInput");
+  edgeFadeInput=document.getElementById("edgeFadeInput");
+  paletteShiftSpeedInput=document.getElementById("paletteShiftSpeedInput");
+  dashPeriodInput=document.getElementById("dashPeriodInput");
+  dashDutyInput=document.getElementById("dashDutyInput");
+  glowStrengthInput=document.getElementById("glowStrengthInput");
+  strokeBoostInput=document.getElementById("strokeBoostInput");
+  trailHoldInput=document.getElementById("trailHoldInput");
+  noiseWobbleInput=document.getElementById("noiseWobbleInput");
+  flowFlipRateInput=document.getElementById("flowFlipRateInput");
+  outburstRateInput=document.getElementById("outburstRateInput");
+  layerParallaxInput=document.getElementById("layerParallaxInput");
+  centerGlowInput=document.getElementById("centerGlowInput");
+
+  PALETTES.forEach((p,i)=>{const o=document.createElement("option");o.value=i;o.textContent=p.name;paletteSelect.appendChild(o);});
+  paletteSelect.value=palIndex;
+
+  HASH=getHash();
+  const c=createCanvas(windowWidth,windowHeight); CANVAS=c.canvas; pixelDensity(2);
+
+  buildScanlines();
+  hardReset(HASH,palIndex);
+
+  // buttons
+  toggleBtn.onclick=()=>{running=!running;toggleBtn.textContent=running?"Pause":"Resume"; if(running) loop(); else noLoop();};
+  reseedBtn.onclick=()=>{const newHash=getHash(); setSeedInURL(newHash); hardReset(newHash,palIndex);};
+  exportBtn.onclick=()=>exportBatch(100,{minFrames:180,maxFrames:3000,maturityRange:[0.2,2.5]});
+  exportHTML5Btn.onclick=()=>exportHTMLBatchForMint(5);
+  exportIPFSBtn.onclick=()=>{ const n=Math.max(1,Math.min(50, +ipfsCountInput.value||5 )); exportIPFSBundle(n); };
+  exportMetaOnlyBtn.onclick=()=>exportMetadataOnlyFromLastRun();
+  rebuildBtn.onclick=()=>rebuildExactBundleFromLastRun();
+  randomizeBtn.onclick=()=>{useSeeded=false;useSeededCheckbox.checked=false;randomizeAllTraits([0.2,2.5]);hardReset(HASH,palIndex);updateManualInputs();enableManual(true);};
+  paletteSelect.onchange=(e)=>{palIndex=+e.target.value; hardReset(HASH,palIndex);};
+
+  exportIPFSHiResBtn.onclick=()=>{
+    const n   = Math.max(1, Math.min(50, +pngResInput.value ? +ipfsCountInput.value : +ipfsCountInput.value || 5));
+    const res = Math.max(512, Math.min(8192, +pngResInput.value || 2048));
+    const dpi = Math.max(1, Math.min(4, +pngDensityInput.value || 2));
+    exportIPFSBundleHiRes(n, {pngSize: res, dpi});
+  };
+
+  // GIF/WebM
+  exportGIF30Btn.onclick=()=>exportGIF30s();
+  exportWEBM30Btn.onclick=()=>exportWEBM30s();
+
+  // toggles
+  useSeededCheckbox.checked = useSeeded;
+  useSeededCheckbox.onchange=()=>{useSeeded=useSeededCheckbox.checked; enableManual(!useSeeded); hardReset(HASH,palIndex);};
+  perfGuardCheckbox.onchange=()=>{perfGuard=perfGuardCheckbox.checked; hardReset(HASH,palIndex);};
+
+  densityInput.onchange=()=>{TRAITS.density=clamp(Math.round(+densityInput.value||1),1,12); if(!useSeeded) hardReset(HASH,palIndex);};
+  speedSelect.onchange=()=>{TRAITS.speedLabel=speedSelect.value; TRAITS.speed=speedValueFromLabel(TRAITS.speedLabel); if(!useSeeded) hardReset(HASH,palIndex);};
+  noiseSelect.onchange=()=>{TRAITS.noiseLabel=noiseSelect.value; TRAITS.noise=noiseValueFromLabel(TRAITS.noiseLabel); if(!useSeeded) hardReset(HASH,palIndex);};
+  curvatureSelect.onchange=()=>{TRAITS.curvatureLabel=curvatureSelect.value; TRAITS.curvature=curvatureValueFromLabel(TRAITS.curvatureLabel); if(!useSeeded) hardReset(HASH,palIndex);};
+  widthSelect.onchange=()=>{TRAITS.trackWidthLabel=widthSelect.value; TRAITS.trackWidth=widthValueFromLabel(TRAITS.trackWidthLabel); if(!useSeeded) hardReset(HASH,palIndex);};
+  traceSelect.onchange=()=>{TRAITS.trace=traceSelect.value; if(!useSeeded) hardReset(HASH,palIndex);};
+  vignetteSelect.onchange=()=>{TRAITS.vignetteMode=vignetteSelect.value; if(!useSeeded) hardReset(HASH,palIndex);};
+
+  glowCb.onchange=()=>{TRAITS.glow=glowCb.checked;};
+  strokesCb.onchange=()=>{TRAITS.strokes=strokesCb.checked;};
+  paletteCycleCb.onchange=()=>{TRAITS.paletteCycle=paletteCycleCb.checked;};
+  pulseCb.onchange=()=>{TRAITS.pulse=pulseCb.checked;};
+  shadowCb.onchange=()=>{TRAITS.shadow=shadowCb.checked;};
+  scanlinesCb.onchange=()=>{TRAITS.scanlines=scanlinesCb.checked;};
+  kaleidoCb.onchange=()=>{TRAITS.kaleido=kaleidoCb.checked;};
+  dashesCb.onchange=()=>{TRAITS.dashes=dashesCb.checked;};
+  orbitCb.onchange=()=>{TRAITS.orbit=orbitCb.checked;};
+  edgeRepelCb.onchange=()=>{TRAITS.edgeRepel=edgeRepelCb.checked;};
+  jitterPlusCb.onchange=()=>{TRAITS.jitterPlus=jitterPlusCb.checked;};
+  colorShiftCb.onchange=()=>{TRAITS.colorShift=colorShiftCb.checked;};
+  noiseShuffleCb.onchange=()=>{TRAITS.noiseShuffle=noiseShuffleCb.checked;};
+
+  // scalable handlers
+  hueRotateInput.onchange=()=>{TRAITS.hueRotate=clamp(+hueRotateInput.value||0,0,1);};
+  lumaPulseInput.onchange=()=>{TRAITS.lumaPulse=clamp(+lumaPulseInput.value||0,0,1);};
+  sizeJitterInput.onchange=()=>{TRAITS.sizeJitter=clamp(+sizeJitterInput.value||0,0,2); hardReset(HASH,palIndex);};
+  alphaJitterInput.onchange=()=>{TRAITS.alphaJitter=clamp(+alphaJitterInput.value||0,0,1); hardReset(HASH,palIndex);};
+  warpStrengthInput.onchange=()=>{TRAITS.warpStrength=clamp(+warpStrengthInput.value||0,0,5);};
+  spiralStrengthInput.onchange=()=>{TRAITS.spiralStrength=clamp(+spiralStrengthInput.value||0,0,2);};
+  centerGravityInput.onchange=()=>{TRAITS.centerGravity=clamp(+centerGravityInput.value||0,0,2);};
+  edgeFadeInput.onchange=()=>{TRAITS.edgeFade=clamp(+edgeFadeInput.value||0,0,1);};
+  paletteShiftSpeedInput.onchange=()=>{TRAITS.paletteShiftSpeed=clamp(+paletteShiftSpeedInput.value||0,0,3);};
+  dashPeriodInput.onchange=()=>{TRAITS.dashPeriod=clamp(Math.round(+dashPeriodInput.value||10),2,40);};
+  dashDutyInput.onchange=()=>{TRAITS.dashDuty=clamp(+dashDutyInput.value||0.5,0.05,0.95);};
+  glowStrengthInput.onchange=()=>{TRAITS.glowStrength=clamp(+glowStrengthInput.value||1,0,4);};
+  strokeBoostInput.onchange=()=>{TRAITS.strokeBoost=clamp(+strokeBoostInput.value||1,0.2,3);};
+  trailHoldInput.onchange=()=>{TRAITS.trailHold=clamp(+trailHoldInput.value||0,0,1);};
+  noiseWobbleInput.onchange=()=>{TRAITS.noiseWobble=clamp(+noiseWobbleInput.value||0,0,5);};
+  flowFlipRateInput.onchange=()=>{TRAITS.flowFlipRate=clamp(+flowFlipRateInput.value||0,0,0.2);};
+  outburstRateInput.onchange=()=>{TRAITS.outburstRate=clamp(+outburstRateInput.value||0,0,0.05);};
+  layerParallaxInput.onchange=()=>{TRAITS.layerParallax=clamp(+layerParallaxInput.value||0,0,1); hardReset(HASH,palIndex);};
+  centerGlowInput.onchange=()=>{TRAITS.centerGlow=clamp(+centerGlowInput.value||0,0,1);};
+
+  enableManual(!useSeeded);
+  updateManualInputs();
+}
+
+function enableManual(enabled){
+  [densityInput,speedSelect,noiseSelect,curvatureSelect,widthSelect,traceSelect,vignetteSelect].forEach(el=>{
+    if(enabled){el.classList.remove('disabled');el.disabled=false;} else {el.classList.add('disabled');el.disabled=true;}
+  });
+}
+
+/* ======================== Seed apply & UI sync ======================== */
+function applySeed(h){
+  const s=seedFromHash(h); BASE_SEED_INT = s; noiseSeed(s); randomSeed(s); R=rngFromHash(h);
+  seedLabel.textContent=h.slice(0,18)+"…";
+  nums=80+Math.floor(R()*820);
+  noiseScale=200+Math.floor(R()*2000);
+
+  if(useSeeded){
+    TRAITS.density    = 1+Math.floor(R()*12);
+    TRAITS.noiseLabel = weightedPick(["low","none"],["medium","high"],0.8);
+    TRAITS.noise      = noiseValueFromLabel(TRAITS.noiseLabel);
+    TRAITS.curvatureLabel = weightedPick(["low","none"],["medium","high"],0.8);
+    TRAITS.curvature  = curvatureValueFromLabel(TRAITS.curvatureLabel);
+    TRAITS.trackWidthLabel = ["thin","medium","thick"][Math.floor(R()*3)];
+    TRAITS.trackWidth = widthValueFromLabel(TRAITS.trackWidthLabel);
+    const spIdx = Math.floor(R()*3);
+    TRAITS.speedLabel = ["slow","medium","fast"][spIdx];
+    TRAITS.speed = speedValueFromLabel(TRAITS.speedLabel);
+
+    const vmPick = R();
+    TRAITS.vignetteMode =
+      vmPick < 0.35 ? "off" :
+      vmPick < 0.60 ? "soft" :
+      vmPick < 0.85 ? "medium" :
+      vmPick < 0.95 ? "wide" : "strong";
+
+    // seeded defaults (scalars)
+    TRAITS.sizeJitter = R()*0.6;
+    TRAITS.alphaJitter = R()*0.3;
+    TRAITS.hueRotate = R()*0.4*(R()<0.5?0:1);
+    TRAITS.lumaPulse = R()*0.4*(R()<0.5?0:1);
+    TRAITS.warpStrength = R()*1.2;
+    TRAITS.spiralStrength = R()*0.8*(R()<0.5?0:1);
+    TRAITS.centerGravity = R()*0.8*(R()<0.5?0:1);
+    TRAITS.edgeFade = R()*0.4*(R()<0.6?0:1);
+    TRAITS.paletteShiftSpeed = 0.6 + R()*1.2;
+    TRAITS.dashPeriod = 8 + Math.floor(R()*8);
+    TRAITS.dashDuty = 0.35 + R()*0.4;
+    TRAITS.glowStrength = 0.8 + R()*1.0;
+    TRAITS.strokeBoost = 0.9 + R()*0.6;
+    TRAITS.trailHold = R()*0.5*(R()<0.6?0:1);
+    TRAITS.noiseWobble = R()*1.2*(R()<0.5?0:1);
+    TRAITS.flowFlipRate = (R()<0.3)? R()*0.03 : 0;
+    TRAITS.outburstRate = (R()<0.3)? R()*0.01 : 0;
+    TRAITS.layerParallax = R()*0.6*(R()<0.5?0:1);
+    TRAITS.centerGlow = (R()<0.5)? R()*0.4 : 0;
+
+  }else{
+    TRAITS.density    = clamp(Math.round(TRAITS.density),1,12);
+    TRAITS.speed      = speedValueFromLabel(TRAITS.speedLabel);
+    TRAITS.noise      = noiseValueFromLabel(TRAITS.noiseLabel);
+    TRAITS.curvature  = curvatureValueFromLabel(TRAITS.curvatureLabel);
+    TRAITS.trackWidth = widthValueFromLabel(TRAITS.trackWidthLabel);
+  }
+  updateManualInputs(); updateTraitsLabel();
+}
+
+function updateManualInputs(){
+  densityInput.value    = TRAITS.density;
+  speedSelect.value     = TRAITS.speedLabel;
+  noiseSelect.value     = TRAITS.noiseLabel;
+  curvatureSelect.value = TRAITS.curvatureLabel;
+  widthSelect.value     = TRAITS.trackWidthLabel;
+  traceSelect.value     = TRAITS.trace;
+  vignetteSelect.value  = TRAITS.vignetteMode;
+
+  glowCb.checked = TRAITS.glow;
+  strokesCb.checked = TRAITS.strokes;
+  paletteCycleCb.checked = TRAITS.paletteCycle;
+  pulseCb.checked = TRAITS.pulse;
+  shadowCb.checked = TRAITS.shadow;
+  scanlinesCb.checked = TRAITS.scanlines;
+  kaleidoCb.checked = TRAITS.kaleido;
+  dashesCb.checked = TRAITS.dashes;
+  orbitCb.checked = TRAITS.orbit;
+  edgeRepelCb.checked = TRAITS.edgeRepel;
+  jitterPlusCb.checked = TRAITS.jitterPlus;
+  colorShiftCb.checked = TRAITS.colorShift;
+  noiseShuffleCb.checked = TRAITS.noiseShuffle;
+
+  hueRotateInput.value = TRAITS.hueRotate;
+  lumaPulseInput.value = TRAITS.lumaPulse;
+  sizeJitterInput.value = TRAITS.sizeJitter;
+  alphaJitterInput.value = TRAITS.alphaJitter;
+  warpStrengthInput.value = TRAITS.warpStrength;
+  spiralStrengthInput.value = TRAITS.spiralStrength;
+  centerGravityInput.value = TRAITS.centerGravity;
+  edgeFadeInput.value = TRAITS.edgeFade;
+  paletteShiftSpeedInput.value = TRAITS.paletteShiftSpeed;
+  dashPeriodInput.value = TRAITS.dashPeriod;
+  dashDutyInput.value = TRAITS.dashDuty;
+  glowStrengthInput.value = TRAITS.glowStrength;
+  strokeBoostInput.value = TRAITS.strokeBoost;
+  trailHoldInput.value = TRAITS.trailHold;
+  noiseWobbleInput.value = TRAITS.noiseWobble;
+  flowFlipRateInput.value = TRAITS.flowFlipRate;
+  outburstRateInput.value = TRAITS.outburstRate;
+  layerParallaxInput.value = TRAITS.layerParallax;
+  centerGlowInput.value = TRAITS.centerGlow;
+
+  document.getElementById("perfGuard").checked = perfGuard;
+}
+
+function updateTraitsLabel(){
+  const t = [
+    `pal=${PALETTES[palIndex].name}`,
+    `den=${TRAITS.density}`,
+    `noise=${TRAITS.noiseLabel}(${TRAITS.noise})`,
+    `width=${TRAITS.trackWidthLabel}(${TRAITS.trackWidth})`,
+    `curv=${TRAITS.curvatureLabel}(${TRAITS.curvature})`,
+    `speed=${TRAITS.speedLabel}(${TRAITS.speed})`,
+    `trace=${TRAITS.trace}`,
+    `vig=${TRAITS.vignetteMode}`,
+    `hueRot=${TRAITS.hueRotate}`,
+    `pulseLuma=${TRAITS.lumaPulse}`,
+    `jitS=${TRAITS.sizeJitter}`,
+    `jitA=${TRAITS.alphaJitter}`,
+    `warp=${TRAITS.warpStrength}`,
+    `spiral=${TRAITS.spiralStrength}`,
+    `cGrav=${TRAITS.centerGravity}`,
+    `edgeFade=${TRAITS.edgeFade}`,
+    `palShift=${TRAITS.paletteShiftSpeed}`,
+    `dashP=${TRAITS.dashPeriod}`,
+    `dashDuty=${TRAITS.dashDuty}`,
+    `glowStr=${TRAITS.glowStrength}`,
+    `strokeBoost=${TRAITS.strokeBoost}`,
+    `trailHold=${TRAITS.trailHold}`,
+    `nWobble=${TRAITS.noiseWobble}`,
+    `flip=${TRAITS.flowFlipRate}`,
+    `burst=${TRAITS.outburstRate}`,
+    `parallax=${TRAITS.layerParallax}`,
+    `centerGlow=${TRAITS.centerGlow}`
+  ].join(' • ');
+  traitsLabel.textContent = t;
+}
+
+/* ======================== Perf estimation ======================== */
+function getPerfAdjustedCounts(){
+  if(!perfGuard) return {densityUsed: TRAITS.density, particlesPerBandUsed: nums, scale:1};
+  const w = TRAITS.trackWidth, n = TRAITS.noise;
+  const mult =
+    1 + (w-0.2)*0.4 + Math.sqrt(n)*0.15 +
+    (TRAITS.glow?0.25:0) + (TRAITS.strokes?0.20:0) +
+    (TRAITS.kaleido?1.6:0) + (TRAITS.shadow?0.2:0);
+  const densityUsed = Math.max(1, Math.round(TRAITS.density / (1 + (w-0.2)*0.30 + Math.sqrt(n)*0.12)));
+  const particlesPerBandUsed = Math.max(40, Math.round(nums / mult));
+  return {densityUsed, particlesPerBandUsed, scale:mult};
+}
+
+/* ======================== Layers & Effects ======================== */
+function buildScanlines(){
+  scanLayer = createGraphics(windowWidth, windowHeight);
+  scanLayer.clear();
+  scanLayer.stroke(255,20);
+  for(let y=0;y<scanLayer.height;y+=2) scanLayer.line(0,y,scanLayer.width,y);
+}
+
+function drawVignette(mode){
+  if(mode==="off") return;
+  const ctx = drawingContext;
+  const cx = width/2, cy=height/2;
+  const bg = color(PALETTES[palIndex].bg);
+  const rMax = Math.hypot(cx,cy);
+
+  let inner=0.5, edgeAlpha=0.35, ovalScaleX=1.0, ovalScaleY=1.0;
+  if(mode==="soft"){ inner=0.55; edgeAlpha=0.22; }
+  else if(mode==="medium"){ inner=0.45; edgeAlpha=0.35; }
+  else if(mode==="strong"){ inner=0.35; edgeAlpha=0.55; }
+  else if(mode==="wide"){ inner=0.70; edgeAlpha=0.25; }
+  else if(mode==="oval"){ inner=0.50; edgeAlpha=0.35; ovalScaleX=1.25; ovalScaleY=0.9; }
+
+  const rgba = `rgba(${red(bg)},${green(bg)},${blue(bg)},`;
+  if(mode==="oval"){
+    ctx.save();
+    ctx.translate(cx,cy);
+    ctx.scale(ovalScaleX, ovalScaleY);
+    const g = ctx.createRadialGradient(0,0, rMax*inner, 0,0, rMax);
+    g.addColorStop(0.0, rgba+'0)');
+    g.addColorStop(0.75, rgba+'0.0)');
+    g.addColorStop(1.0, rgba+edgeAlpha+')');
+    ctx.fillStyle = g;
+    ctx.fillRect(-rMax, -rMax, rMax*2, rMax*2);
+    ctx.restore();
+  }else{
+    const g = ctx.createRadialGradient(cx,cy, rMax*inner, cx,cy, rMax);
+    g.addColorStop(0.0, rgba+'0)');
+    g.addColorStop(0.7, rgba+'0.0)');
+    g.addColorStop(1.0, rgba+edgeAlpha+')');
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,width,height);
+  }
+  ctx.fillStyle = "";
+}
+
+function getFadeAlpha(){
+  if(TRAITS.trace==="full") return 0.0;
+  if(TRAITS.trace==="none") return 1.0;
+  const base = clamp(0.02+TRAITS.noise*0.03,0.02,0.14);
+  return clamp(base*(1 - TRAITS.trailHold), 0, 1);
+}
+function drawFade(alpha){
+  if(alpha<=0) return;
+  noStroke();
+  const c=color(PALETTES[palIndex].bg);
+  c.setAlpha(alpha*255); fill(c); rect(0,0,width,height);
+}
+
+function effectiveColor(hex, groupIndex){
+  let h = hex;
+  if(TRAITS.hueRotate>0){
+    const degrees = (frameCount*TRAITS.hueRotate*3.0)%360;
+    h = rotateHexHue(h, degrees);
+  }
+  if(TRAITS.lumaPulse>0){
+    const mul = 1 + 0.25*TRAITS.lumaPulse*Math.sin(frameCount*0.05 + groupIndex*0.7);
+    h = adjustHexLuma(h, mul);
+  }
+  let base = color(h);
+  if(TRAITS.colorShift){
+    const cols=PALETTES[palIndex].cols;
+    const nextHex = cols[(groupIndex+1)%cols.length];
+    const nextCol = color(nextHex);
+    const t = (Math.sin(frameCount*0.02)+1)/2;
+    base = lerpColor(base, nextCol, 0.55*t);
+  }
+  return base;
+}
+
+/* ======================== Particle & Drawing ======================== */
+class Particle{
+  constructor(x,y,speedBase,noiseVal,curv){
+    this.pos=createVector(x,y);
+    this.prev=this.pos.copy();
+    this.speedBase=speedBase;
+    this.noiseVal=noiseVal;
+    this.curvature=curv;
+    this.dir=createVector(0,0);
+    this.vel=createVector(0,0);
+    this.sizeJ = 1 + (random()-0.5)*2*TRAITS.sizeJitter;
+    this.alphaJ= clamp(1 + (random()-0.5)*2*TRAITS.alphaJitter, 0.3, 2.0);
+  }
+  move(groupSpeedScale){
+    this.prev.set(this.pos);
+    const f1=1/noiseScale;
+    const wob = TRAITS.noiseWobble*0.002*frameCount;
+    const angleBase=noise(this.pos.x*f1 + wob, this.pos.y*f1 + wob)*TWO_PI*noiseScale;
+    const curl=noise(this.pos.x*f1*2.3 + wob*1.7, this.pos.y*f1*2.3 + wob*1.7)*TWO_PI;
+
+    let ang = angleBase*(0.4+0.6*this.curvature) + (this.curvature-1.0)*0.8*curl;
+    let dx=Math.cos(ang), dy=Math.sin(ang);
+
+    if(TRAITS.warpStrength>0){
+      const w1 = (noise(this.pos.x*f1*4.1+33, this.pos.y*f1*4.1+57)-0.5);
+      const w2 = (noise(this.pos.x*f1*3.7+91, this.pos.y*f1*3.7+12)-0.5);
+      dx += 0.25*TRAITS.warpStrength*w1;
+      dy += 0.25*TRAITS.warpStrength*w2;
+    }
+
+    if(TRAITS.orbit || TRAITS.spiralStrength>0 || TRAITS.centerGravity>0){
+      const cx = width*0.5, cy = height*0.5;
+      const ux = this.pos.x - cx, uy = this.pos.y - cy;
+      const len = Math.hypot(ux,uy)||1;
+      const nx = ux/len, ny = uy/len;
+
+      const tang = (TRAITS.orbit?0.25:0) + (TRAITS.spiralStrength*0.5);
+      dx += -ny * tang;
+      dy +=  nx * tang;
+
+      if(TRAITS.centerGravity>0){
+        dx += -nx * (0.25*TRAITS.centerGravity);
+        dy += -ny * (0.25*TRAITS.centerGravity);
+      }
+    }
+
+    if(TRAITS.edgeRepel){
+      const m=40;
+      const l = Math.min(this.pos.x, m), r = Math.min(width - this.pos.x, m);
+      const t = Math.min(this.pos.y, m), b = Math.min(height - this.pos.y, m);
+      dx += (l<m? (1-l/m)*0.8 : 0) - (r<m? (1-r/m)*0.8 : 0);
+      dy += (t<m? (1-t/m)*0.8 : 0) - (b<m? (1-b/m)*0.8 : 0);
+    }
+
+    const L = Math.hypot(dx,dy)||1; dx/=L; dy/=L;
+    this.dir.set(dx,dy);
+
+    if(TRAITS.flowFlipRate>0 && random()<TRAITS.flowFlipRate){
+      this.dir.mult(-1);
+    }
+
+    const base=(0.8+Math.log1p(this.noiseVal)*0.25);
+    const spMul = Math.max(TRAITS.speed,0)*G_PULSE_MUL*(groupSpeedScale||1);
+    const speed=this.speedBase*base*spMul;
+    this.vel.set(this.dir).mult(speed);
+    this.pos.add(this.vel);
+
+    let j=0.35*Math.sqrt(this.noiseVal);
+    if(TRAITS.jitterPlus) j*=2.0;
+    if(this.noiseVal>0){ this.pos.x+=(random()-0.5)*j; this.pos.y+=(random()-0.5)*j; }
+
+    if(TRAITS.outburstRate>0 && random()<TRAITS.outburstRate){
+      this.pos.x = random(0,width);
+      this.pos.y = random(0,height);
+      this.prev.set(this.pos);
+    }
+
+    if(this.pos.x > width)  this.pos.x = 0;
+    if(this.pos.x < 0)      this.pos.x = width;
+    if(this.pos.y > height) this.pos.y = 0;
+    if(this.pos.y < 0)      this.pos.y = height;
+  }
+}
+
+function drawDotOrStroke(x,y,r,a,col, px,py){
+  if(TRAITS.edgeFade>0){
+    const d = Math.min(x, y, width - x, height - y);
+    const rim = 0.25*Math.min(width,height);
+    const t = clamp(d / rim, 0, 1);
+    const m = 1 - TRAITS.edgeFade*(1 - t);
+    a *= m;
+  }
+
+  if(TRAITS.shadow){
+    const sh=color(0,0,0, Math.min(120, a*0.25));
+    const off=1.6*TRAITS.trackWidth;
+    fill(sh); noStroke();
+    ellipse(x+off,y+off,r*1.05,r*1.05);
+  }
+
+  if(TRAITS.strokes){
+    stroke(col);
+    const sw = Math.max(0.5, 0.9*TRAITS.trackWidth*TRAITS.strokeBoost);
+    strokeWeight(sw);
+    if(TRAITS.dashes){
+      const period=Math.max(2,Math.floor(TRAITS.dashPeriod));
+      const duty=clamp(TRAITS.dashDuty,0.05,0.95);
+      if(((frameCount + (px|0)) % period) < Math.floor(duty*period)){
+        line(px,py,x,y);
+      }
+    }else{
+      line(px,py,x,y);
+    }
+    noStroke();
+  }else{
+    if(TRAITS.glow){
+      const gmul = TRAITS.glowStrength;
+      const g1=color(red(col),green(col),blue(col), Math.min(40*gmul,a*0.15*gmul));
+      const g2=color(red(col),green(col),blue(col), Math.min(80*gmul,a*0.3*gmul));
+      noStroke(); fill(g1); ellipse(x,y,r*2.2,r*2.2);
+      fill(g2); ellipse(x,y,r*1.45,r*1.45);
+    }
+    noStroke(); fill(col); ellipse(x,y,r,r);
+  }
+}
+
+function drawOneWithKaleido(x,y,px,py,r,a,col){
+  if(!TRAITS.kaleido){
+    drawDotOrStroke(x,y,r,a,col,px,py);
+    return;
+  }
+  const cx=width/2, cy=height/2;
+  const dx=x-cx, dy=y-cy, dpx=px-cx, dpy=py-cy;
+  const K=4;
+  for(let k=0;k<K;k++){
+    const ang = k*(Math.PI/2);
+    const ca=Math.cos(ang), sa=Math.sin(ang);
+    const rx=cx + dx*ca - dy*sa;
+    const ry=cy + dx*sa + dy*ca;
+    const rpx=cx + dpx*ca - dpy*sa;
+    const rpy=cy + dpx*sa + dpy*ca;
+    drawDotOrStroke(rx,ry,r,a,col,rpx,rpy);
+  }
+}
+
+function drawCenterGlow(){
+  if(TRAITS.centerGlow<=0) return;
+  const ctx = drawingContext;
+  const cx = width/2, cy=height/2;
+  const rMax = Math.min(width,height)*0.6;
+  const g = ctx.createRadialGradient(cx,cy, 0, cx,cy, rMax);
+  const rgba = (a)=>`rgba(255,255,255,${a})`;
+  g.addColorStop(0.0, rgba(0.18*TRAITS.centerGlow));
+  g.addColorStop(0.6, rgba(0.10*TRAITS.centerGlow));
+  g.addColorStop(1.0, rgba(0));
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,width,height);
+  ctx.fillStyle = "";
+}
+
+/* ======================== Core ======================== */
+function hardReset(h,palIdx){
+  applySeed(h);
+  groups=[]; background(PALETTES[palIdx].bg);
+
+  const {densityUsed, particlesPerBandUsed} = getPerfAdjustedCounts();
+  const cols=PALETTES[palIdx].cols;
+  const baseSpeeds=[0.28,0.35,0.45,0.52,0.6,0.68,0.76,0.84,0.92];
+
+  noStroke(); fill(PALETTES[palIdx].bg); rect(0,0,width,height);
+
+  for(let g=0; g<densityUsed; g++){
+    const ps=[];
+    const sp=baseSpeeds[g%baseSpeeds.length]*(0.85+random()*0.35);
+    const depthFactor = (densityUsed<=1)? 0.5 : (g/(densityUsed-1)); // 0..1
+    const speedScale = 1 + (TRAITS.layerParallax||0) * (depthFactor - 0.5) * 1.5;
+    for(let i=0;i<particlesPerBandUsed;i++){
+      ps.push(new Particle(
+        random(0, width), random(0, height),
+        sp, +TRAITS.noise, +TRAITS.curvature
+      ));
+    }
+    groups.push({color:cols[g%cols.length], ci:(g%cols.length), particles:ps, speedScale});
+  }
+  drawFade(1.0);
+  if(!running){running=true;toggleBtn.textContent="Pause";loop();}
+  updateTraitsLabel();
+}
+
+function stepOnce(){
+  G_PULSE_MUL = TRAITS.pulse ? (1 + 0.22*Math.sin(frameCount*0.02)) : 1;
+
+  if(TRAITS.noiseShuffle && frameCount%600===0){
+    noiseSeed( (BASE_SEED_INT + Math.floor(frameCount/600)) >>> 0 );
+  }
+
+  drawFade(getFadeAlpha());
+  smooth();
+
+  const cols = PALETTES[palIndex].cols;
+  const shSpeed = Math.max(0.01, TRAITS.paletteShiftSpeed||1);
+  const offset = TRAITS.paletteCycle ? Math.floor((frameCount/60)*shSpeed) : 0;
+
+  groups.forEach((group, gi)=>{
+    const hex = cols[(group.ci + offset) % cols.length];
+    const ps=group.particles;
+    const colEff = effectiveColor(hex, group.ci + offset);
+    for(let i=0;i<ps.length;i++){
+      const p=ps[i];
+      let radius=map(i,0,ps.length,0.5,2.2)*TRAITS.trackWidth * p.sizeJ;
+      let a=map(i,0,ps.length,10,235) * p.alphaJ;
+
+      p.move(group.speedScale);
+      drawOneWithKaleido(p.pos.x, p.pos.y, p.prev.x, p.prev.y, radius, a, color(red(colEff),green(colEff),blue(colEff),a));
+    }
+  });
+
+  if(TRAITS.scanlines && scanLayer){ image(scanLayer,0,0,width,height); }
+  drawVignette(TRAITS.vignetteMode);
+  drawCenterGlow();
+}
+
+function draw(){ stepOnce(); }
+
+function windowResized(){
+  resizeCanvas(windowWidth,windowHeight);
+  buildScanlines();
+  background(PALETTES[palIndex].bg);
+}
+
+function keyPressed(){
+  if(key==='s'||key==='S') saveCanvas(`perlin_traits_${HASH.slice(2,10)}`,'png');
+  if(key===' '){ running=!running; toggleBtn.textContent=running?"Pause":"Resume"; if(running) loop(); else noLoop(); }
+}
+
+/* ======================== Randomizer ======================== */
+function sampleUniform(min,max){return min+Math.random()*(max-min)}
+function sampleInt(min,max){return Math.floor(sampleUniform(min,max+1))}
+function weightedPick(lowGroup, highGroup, lowWeight=0.8){
+  if(Math.random()<lowWeight){
+    return pick(lowGroup);
+  } else {
+    return pick(highGroup);
+  }
+}
+function randomizeAllTraits(maturityRange=[0.2,2.5]){
+  palIndex=sampleInt(0,PALETTES.length-1);
+  TRAITS.density    = sampleInt(1,12);
+  TRAITS.trackWidthLabel = ["thin","medium","thick"][sampleInt(0,2)];
+  TRAITS.trackWidth = widthValueFromLabel(TRAITS.trackWidthLabel);
+
+  // Favor low/none for noise & curvature ~80% of the time
+  TRAITS.noiseLabel = weightedPick(["low","none"],["medium","high"],0.8);
+  TRAITS.noise      = noiseValueFromLabel(TRAITS.noiseLabel);
+  TRAITS.curvatureLabel = weightedPick(["low","none"],["medium","high"],0.8);
+  TRAITS.curvature  = curvatureValueFromLabel(TRAITS.curvatureLabel);
+
+  TRAITS.speedLabel = ["slow","medium","fast"][sampleInt(0,2)];
+  TRAITS.speed = speedValueFromLabel(TRAITS.speedLabel);
+
+  const rV = Math.random();
+  TRAITS.vignetteMode =
+    rV < 0.35 ? "off" :
+    rV < 0.60 ? "soft" :
+    rV < 0.85 ? "medium" :
+    rV < 0.95 ? "wide" : "strong";
+
+  // trace: 10% "none", 50% "current", 40% "full"
+  const rt = Math.random();
+  TRAITS.trace = rt < 0.10 ? "none" : rt < 0.60 ? "current" : "full";
+
+  // toggles
+  TRAITS.glow = Math.random()<0.55;
+  TRAITS.strokes = Math.random()<0.45;
+  TRAITS.paletteCycle = Math.random()<0.45;
+  TRAITS.pulse = Math.random()<0.5;
+  TRAITS.shadow = Math.random()<0.55;
+  TRAITS.scanlines = Math.random()<0.35;
+  TRAITS.kaleido = Math.random()<0.35;
+  TRAITS.dashes = Math.random()<0.4;
+  TRAITS.orbit = Math.random()<0.45;
+  TRAITS.edgeRepel = Math.random()<0.45;
+  TRAITS.jitterPlus = Math.random()<0.4;
+  TRAITS.colorShift = Math.random()<0.5;
+  TRAITS.noiseShuffle = Math.random()<0.35;
+
+  // scalars
+  TRAITS.hueRotate = (Math.random()<0.5)? 0 : +(Math.random()*0.6).toFixed(2);
+  TRAITS.lumaPulse = (Math.random()<0.5)? 0 : +(Math.random()*0.6).toFixed(2);
+  TRAITS.sizeJitter = +(Math.random()*0.8).toFixed(2);
+  TRAITS.alphaJitter = +(Math.random()*0.4).toFixed(2);
+  TRAITS.warpStrength = +(Math.random()*1.4).toFixed(2);
+  TRAITS.spiralStrength = (Math.random()<0.5)? 0 : +(Math.random()*0.8).toFixed(2);
+  TRAITS.centerGravity = (Math.random()<0.5)? 0 : +(Math.random()*0.8).toFixed(2);
+  TRAITS.edgeFade = (Math.random()<0.6)? 0 : +(Math.random()*0.4).toFixed(2);
+  TRAITS.paletteShiftSpeed = +(0.6 + Math.random()*1.2).toFixed(2);
+  TRAITS.dashPeriod = 8 + Math.floor(Math.random()*10);
+  TRAITS.dashDuty = +(0.35 + Math.random()*0.4).toFixed(2);
+  TRAITS.glowStrength = +(0.9 + Math.random()*1.0).toFixed(2);
+  TRAITS.strokeBoost = +(0.9 + Math.random()*0.6).toFixed(2);
+  TRAITS.trailHold = (Math.random()<0.6)? 0 : +(Math.random()*0.5).toFixed(2);
+  TRAITS.noiseWobble = (Math.random()<0.5)? 0 : +(Math.random()*1.2).toFixed(2);
+  TRAITS.flowFlipRate = (Math.random()<0.3)? +(Math.random()*0.03).toFixed(3) : 0;
+  TRAITS.outburstRate = (Math.random()<0.3)? +(Math.random()*0.01).toFixed(3) : 0;
+  TRAITS.layerParallax = (Math.random()<0.5)? 0 : +(Math.random()*0.6).toFixed(2);
+  TRAITS.centerGlow = (Math.random()<0.5)? 0 : +(Math.random()*0.4).toFixed(2);
+
+  TRAITS.maturity   = +sampleUniform(maturityRange[0],maturityRange[1]).toFixed(2);
+  document.getElementById("palette").value=palIndex;
+  updateManualInputs(); updateTraitsLabel();
+}
+
+/* ======================== CSV helper ======================== */
+function csvEscape(val){const s=String(val);return /[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s;}
+
+/* ======================== PNG batch exporter ======================== */
+async function exportBatch(count=100,{minFrames=180,maxFrames=3000,maturityRange=[0.2,2.5]}={}){
+  const wasRunning=running; noLoop(); running=false; toggleBtn.textContent="Resume";
+  progressEl.style.display="inline-block"; progressEl.textContent=`Exporting… 0/${count}`;
+  const zip=new JSZip(); const records=[];
+  for(let i=0;i<count;i++){
+    const seed=getHash(); HASH=seed; setSeedInURL(seed);
+    const prev=useSeeded; useSeeded=false; randomizeAllTraits(maturityRange); hardReset(seed,palIndex); useSeeded=prev;
+    const mMin=maturityRange[0], mMax=maturityRange[1];
+    const t=clamp((TRAITS.maturity-mMin)/(mMax-mMin),0,1);
+    const frames=Math.round(minFrames+t*(maxFrames-minFrames));
+    for(let f=0;f<frames;f++){ stepOnce(); if(f%60===0) await new Promise(r=>requestAnimationFrame(r)); }
+    const blob=await new Promise(res=>CANVAS.toBlob(res,"image/png"));
+    const filename=`perlin_${String(i+1).padStart(3,"0")}_${seed.slice(2,10)}.png`;
+    zip.file(filename,blob);
+    const {densityUsed, particlesPerBandUsed} = getPerfAdjustedCounts();
+    records.push(Object.assign({
+      index:i+1, filename, seed, palette:PALETTES[palIndex].name, palIndex,
+      densitySeeded:TRAITS.density, densityUsed,
+      noiseLabel:TRAITS.noiseLabel, noise:TRAITS.noise,
+      widthLabel:TRAITS.trackWidthLabel, width:TRAITS.trackWidth,
+      curvatureLabel:TRAITS.curvatureLabel, curvature:TRAITS.curvature,
+      speedLabel:TRAITS.speedLabel, speed:TRAITS.speed,
+      trace:TRAITS.trace,
+      vignetteMode:TRAITS.vignetteMode, vignette:TRAITS.vignette,
+      glow:TRAITS.glow, strokes:TRAITS.strokes, paletteCycle:TRAITS.paletteCycle, pulse:TRAITS.pulse,
+      shadow:TRAITS.shadow, scanlines:TRAITS.scanlines, kaleido:TRAITS.kaleido, dashes:TRAITS.dashes,
+      orbit:TRAITS.orbit, edgeRepel:TRAITS.edgeRepel, jitterPlus:TRAITS.jitterPlus, colorShift:TRAITS.colorShift, noiseShuffle:TRAITS.noiseShuffle,
+      maturity:TRAITS.maturity, frames,
+      particlesPerBandSeeded:nums, particlesPerBandUsed,
+      noiseScale, canvas:{width,height},
+      hueRotate:TRAITS.hueRotate, lumaPulse:TRAITS.lumaPulse, sizeJitter:TRAITS.sizeJitter, alphaJitter:TRAITS.alphaJitter,
+      warpStrength:TRAITS.warpStrength, spiralStrength:TRAITS.spiralStrength, centerGravity:TRAITS.centerGravity, edgeFade:TRAITS.edgeFade,
+      paletteShiftSpeed:TRAITS.paletteShiftSpeed, dashPeriod:TRAITS.dashPeriod, dashDuty:TRAITS.dashDuty, glowStrength:TRAITS.glowStrength,
+      strokeBoost:TRAITS.strokeBoost, trailHold:TRAITS.trailHold, noiseWobble:TRAITS.noiseWobble, flowFlipRate:TRAITS.flowFlipRate,
+      outburstRate:TRAITS.outburstRate, layerParallax:TRAITS.layerParallax, centerGlow:TRAITS.centerGlow
+    }));
+    progressEl.textContent=`Exporting… ${i+1}/${count} • maturity ${TRAITS.maturity}`;
+    await new Promise(r=>setTimeout(r,10));
+  }
+  // save manifest
+  zip.file("manifest.json", JSON.stringify(records,null,2));
+  const headers=["index","filename","seed","palette","palIndex","densitySeeded","densityUsed","noiseLabel","noise","widthLabel","width","curvatureLabel","curvature","speedLabel","speed","trace",
+    "vignetteMode","vignette","glow","strokes","paletteCycle","pulse","shadow","scanlines","kaleido","dashes","orbit","edgeRepel","jitterPlus","colorShift","noiseShuffle",
+    "maturity","frames","particlesPerBandSeeded","particlesPerBandUsed","noiseScale","canvasWidth","canvasHeight",
+    "hueRotate","lumaPulse","sizeJitter","alphaJitter","warpStrength","spiralStrength","centerGravity","edgeFade","paletteShiftSpeed","dashPeriod","dashDuty","glowStrength","strokeBoost","trailHold","noiseWobble","flowFlipRate","outburstRate","layerParallax","centerGlow"];
+  const csvLines=[headers.join(",")];
+  for(const r of records){
+    csvLines.push([r.index,r.filename,r.seed,r.palette,r.palIndex,r.densitySeeded,r.densityUsed,r.noiseLabel,r.noise,r.widthLabel,r.width,r.curvatureLabel,r.curvature,r.speedLabel,r.speed,r.trace,
+      r.vignetteMode,+r.vignette,+r.glow,+r.strokes,+r.paletteCycle,+r.pulse,+r.shadow,+r.scanlines,+r.kaleido,+r.dashes,+r.orbit,+r.edgeRepel,+r.jitterPlus,+r.colorShift,+r.noiseShuffle,
+      r.maturity,r.frames,r.particlesPerBandSeeded,r.particlesPerBandUsed,r.noiseScale,r.canvas.width,r.canvas.height,
+      r.hueRotate,r.lumaPulse,r.sizeJitter,r.alphaJitter,r.warpStrength,r.spiralStrength,r.centerGravity,r.edgeFade,r.paletteShiftSpeed,r.dashPeriod,r.dashDuty,r.glowStrength,r.strokeBoost,r.trailHold,r.noiseWobble,r.flowFlipRate,r.outburstRate,r.layerParallax,r.centerGlow].map(csvEscape).join(","));
+  }
+  zip.file("manifest.csv",csvLines.join("\n"));
+  const zipBlob=await zip.generateAsync({type:"blob"}); saveAs(zipBlob,`perlin_export_${Date.now()}.zip`);
+  progressEl.style.display="none";
+  if(wasRunning){loop();running=true;toggleBtn.textContent="Pause";}
+}
+
+/* ======================== Standalone HTML builder ======================== */
+function buildStandaloneHTML(config){
+  // Embeds a minimal renderer that mirrors the main algorithm
+  const script = `
+const CFG = ${JSON.stringify(config)};
+let Rseed = (function(hex){let h=BigInt(hex);let s=Number((h^(h>>64n))%4294967291n)>>>0;return function(){s+=0x6D2B79F5;s>>>=0;let t=Math.imul(s^s>>>15,1|s);t^=t+Math.imul(t^t>>>7,61|t);return((t^t>>>14)>>>0)/4294967296}})('`+config.seed+`');
+function clamp(x,a,b){return Math.min(b,Math.max(a,x));}
+let groups=[], noiseScale=${noiseScale};
+function setup(){
+  const cn=createCanvas(window.innerWidth, window.innerHeight); pixelDensity(2);
+  background(CFG.palette.bg);
+  window.addEventListener('resize', ()=>{resizeCanvas(window.innerWidth, window.innerHeight); background(CFG.palette.bg);});
+  hardReset();
+  setTimeout(()=>{document.getElementById('cover').style.opacity='0'; cn.canvas.style.opacity='1';}, 20);
+}
+function hardReset(){
+  groups=[];
+  const cols=CFG.palette.cols;
+  const baseSpeeds=[0.28,0.35,0.45,0.52,0.6,0.68,0.76,0.84,0.92];
+  const density=Math.max(1, Math.round(CFG.density));
+  const nums=${nums};
+  for(let g=0; g<density; g++){
+    const ps=[];
+    const sp=baseSpeeds[g%baseSpeeds.length]*(0.85+random()*0.35);
+    for(let i=0;i<nums;i++){
+      ps.push(new Particle(random(width), random(height), sp, CFG.noise, CFG.curvature));
+    }
+    groups.push({ci:(g%cols.length), particles:ps});
+  }
+  noStroke(); fill(CFG.palette.bg); rect(0,0,width,height);
+}
+class Particle{
+  constructor(x,y,sp,nv,cv){this.pos=createVector(x,y);this.prev=this.pos.copy();this.sp=sp;this.nv=nv;this.cv=cv;}
+  move(){
+    this.prev.set(this.pos);
+    const f1=1/noiseScale;
+    const angleBase=noise(this.pos.x*f1, this.pos.y*f1)*TWO_PI*noiseScale;
+    const curl=noise(this.pos.x*f1*2.3, this.pos.y*f1*2.3)*TWO_PI;
+    let ang = angleBase*(0.4+0.6*this.cv) + (this.cv-1.0)*0.8*curl;
+    let dx=Math.cos(ang), dy=Math.sin(ang);
+    const L=Math.hypot(dx,dy)||1; dx/=L; dy/=L;
+    const speed=this.sp*(0.8+Math.log1p(this.nv)*0.25)*CFG.speed;
+    this.pos.x+=dx*speed; this.pos.y+=dy*speed;
+    if(this.nv>0){ this.pos.x+=(random()-0.5)*Math.sqrt(this.nv)*0.35; this.pos.y+=(random()-0.5)*Math.sqrt(this.nv)*0.35; }
+    if(this.pos.x>width) this.pos.x=0; if(this.pos.x<0) this.pos.x=width;
+    if(this.pos.y>height) this.pos.y=0; if(this.pos.y<0) this.pos.y=height;
+  }
+}
+function drawFade(a){ if(a<=0)return; noStroke(); const c=color(CFG.palette.bg); c.setAlpha(a*255); fill(c); rect(0,0,width,height); }
+function draw(){
+  const alphaMap = CFG.trace==='full'?0 : CFG.trace==='none'?1 : clamp(0.02+CFG.noise*0.03,0.02,0.14);
+  drawFade(alphaMap);
+  const cols = CFG.palette.cols;
+  for(let gi=0;gi<groups.length;gi++){
+    const g=groups[gi]; const col=color(cols[g.ci]);
+    for(let i=0;i<g.particles.length;i++){
+      const p=g.particles[i];
+      const r=map(i,0,g.particles.length,0.5,2.2)*CFG.trackWidth;
+      const a=map(i,0,g.particles.length,10,235);
+      p.move();
+      fill(red(col),green(col),blue(col),a); noStroke(); ellipse(p.pos.x,p.pos.y,r,r);
+    }
+  }
+}
+`.trim();
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>${config.name}</title>
+<link rel="icon" sizes="any" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E">
+<style>
+  html,body{margin:0;width:100%;height:100%;background:${config.palette.bg};overflow:hidden}
+  canvas{display:block;opacity:0;transition:opacity .12s ease}
+  #cover{position:fixed;inset:0;background:${config.palette.bg};z-index:2;opacity:1;transition:opacity .18s ease}
+</style>
+</head>
+<body>
+<div id="cover" aria-hidden="true"></div>
+<script src="./p5.min.js"></scr` + `ipt>
+<script>
+${script.replace(/<\/script>/gi,'<\/scr"+"ipt>')}
+</scr` + `ipt>
+</body></html>`;
+}
+
+/* ======================== HTML for Mint (5) ======================== */
+async function exportHTMLBatchForMint(count=5){
+  const wasRunning=running; if(wasRunning){ noLoop(); running=false; toggleBtn.textContent="Resume"; }
+  const zip=new JSZip(); const htmlFolder=zip.folder("html");
+  const p5Code=await fetchP5();
+  if(!p5Code){ alert("Couldn't download p5.min.js for the HTML bundle."); return; }
+  htmlFolder.file("p5.min.js", p5Code);
+
+  const records=[];
+
+  for(let i=0;i<count;i++){
+    const seed=getHash(); HASH=seed; setSeedInURL(seed);
+    const prev=useSeeded; useSeeded=false; randomizeAllTraits([0.2,2.5]); hardReset(seed,palIndex); useSeeded=prev;
+
+    const localPal=PALETTES[palIndex];
+    const fileStem=`token_${String(i+1).padStart(3,"0")}`;
+    const config={
+      name:`Perlin Flow — Test #${i+1}`,
+      fileStem,
+      seed,
+      palette:{name:localPal.name, cols:localPal.cols, bg:localPal.bg},
+      density:TRAITS.density,
+      noise:TRAITS.noise, noiseLabel:TRAITS.noiseLabel,
+      trackWidth:TRAITS.trackWidth, trackWidthLabel:TRAITS.trackWidthLabel,
+      curvature:TRAITS.curvature, curvatureLabel:TRAITS.curvatureLabel,
+      speed:TRAITS.speed, speedLabel:TRAITS.speedLabel,
+      trace:TRAITS.trace,
+      vignetteMode:TRAITS.vignetteMode,
+      noiseScale, particlesPerBand:nums
+    };
+    const html=buildStandaloneHTML(config);
+    htmlFolder.file(`${fileStem}.html`, html);
+
+    records.push({index:i+1, seed, palIndex, palette:localPal.name, fileStem, html:`html/${fileStem}.html`});
+  }
+
+  LAST_RUN = { type:"html-mint", timestamp:Date.now(), records, palIndexAtRun:palIndex };
+
+  const blob=await zip.generateAsync({type:"blob"});
+  saveAs(blob,"html_for_mint.zip");
+  if(wasRunning){ loop(); running=true; toggleBtn.textContent="Pause"; }
+}
+
+/* ======================== IPFS bundles (PNG/HTML/metadata) ======================== */
+async function exportIPFSBundle(n=5){
+  const wasRunning=running; if(wasRunning){ noLoop(); running=false; toggleBtn.textContent="Resume"; }
+  progressEl.style.display = "inline-block"; progressEl.textContent = `Building IPFS bundle…`;
+  const zip = new JSZip();
+  const imgFolder = zip.folder("images");
+  const htmlFolder = zip.folder("html");
+  const p5Code=await fetchP5(); if(!p5Code){ alert("Couldn't fetch p5.min.js"); return; }
+  htmlFolder.file("p5.min.js", p5Code);
+
+  const records=[];
+  for(let i=0;i<n;i++){
+    const seed=getHash(); HASH=seed; setSeedInURL(seed);
+    const prev=useSeeded; useSeeded=false; randomizeAllTraits([0.6,2.2]); hardReset(seed,palIndex); useSeeded=prev;
+
+    // grow to maturity for PNG preview (on-chain preview not required, but handy)
+    const frames = Math.round(600 + Math.random()*900);
+    for(let f=0;f<frames;f++){ stepOnce(); if(f%90===0) await new Promise(r=>requestAnimationFrame(r)); }
+
+    const pngBlob = await new Promise(res=>CANVAS.toBlob(res,"image/png"));
+    const idx = i+1;
+    const fileStem=`token_${String(idx).padStart(3,"0")}`;
+    const pngName=`${fileStem}.png`;
+    imgFolder.file(pngName, pngBlob);
+
+    // standalone HTML for live animation
+    const localPal=PALETTES[palIndex];
+    const config={
+      name:`Perlin Flow #${idx}`,
+      fileStem,
+      seed,
+      palette:{name:localPal.name, cols:localPal.cols, bg:localPal.bg},
+      density:TRAITS.density,
+      noise:TRAITS.noise, noiseLabel:TRAITS.noiseLabel,
+      trackWidth:TRAITS.trackWidth, trackWidthLabel:TRAITS.trackWidthLabel,
+      curvature:TRAITS.curvature, curvatureLabel:TRAITS.curvatureLabel,
+      speed:TRAITS.speed, speedLabel:TRAITS.speedLabel,
+      trace:TRAITS.trace,
+      vignetteMode:TRAITS.vignetteMode,
+      noiseScale, particlesPerBand:nums
+    };
+    const html=buildStandaloneHTML(config);
+    htmlFolder.file(`${fileStem}.html`, html);
+
+    records.push({
+      index:idx, seed, palIndex, palette:localPal.name,
+      pngName, htmlName:`${fileStem}.html`,
+      traits: JSON.parse(JSON.stringify(TRAITS)),
+      noiseScale, nums, frames
+    });
+    progressEl.textContent = `Building IPFS bundle… ${idx}/${n}`;
+  }
+
+  LAST_RUN = { type:"ipfs-bundle", timestamp:Date.now(), records, palIndexAtRun:palIndex };
+
+  // Save manifest for reproducibility
+  zip.file("manifest.json", JSON.stringify(LAST_RUN,null,2));
+
+  const zipBlob = await zip.generateAsync({type:"blob"});
+  saveAs(zipBlob, `ipfs_bundle_${Date.now()}.zip`);
+  progressEl.style.display = "none";
+  if(wasRunning){ loop(); running=true; toggleBtn.textContent="Pause"; }
+}
+
+async function exportIPFSBundleHiRes(n=5, {pngSize=2048, dpi=2}={}){
+  const wasRunning=running; if(wasRunning){ noLoop(); running=false; toggleBtn.textContent="Resume"; }
+  progressEl.style.display = "inline-block"; progressEl.textContent = `Building Hi-Res bundle…`;
+  const zip = new JSZip();
+  const imgFolder = zip.folder("images");
+  const htmlFolder = zip.folder("html");
+  const p5Code=await fetchP5(); if(!p5Code){ alert("Couldn't fetch p5.min.js"); return; }
+  htmlFolder.file("p5.min.js", p5Code);
+
+  const records=[];
+  for(let i=0;i<n;i++){
+    const seed=getHash(); HASH=seed; setSeedInURL(seed);
+    const prev=useSeeded; useSeeded=false; randomizeAllTraits([0.6,2.2]); hardReset(seed,palIndex); useSeeded=prev;
+
+    // pre-run some frames (same as standard) before hi-res snapshot
+    const frames = Math.round(600 + Math.random()*900);
+    for(let f=0;f<frames;f++){ stepOnce(); if(f%90===0) await new Promise(r=>requestAnimationFrame(r)); }
+
+    // hi-res still
+    const blob = await renderPNGAt(pngSize, dpi, 360);
+
+    const idx = i+1;
+    const fileStem=`token_${String(idx).padStart(3,"0")}`;
+    const pngName=`${fileStem}.png`;
+    imgFolder.file(pngName, blob);
+
+    const localPal=PALETTES[palIndex];
+    const config={
+      name:`Perlin Flow #${idx}`,
+      fileStem,
+      seed,
+      palette:{name:localPal.name, cols:localPal.cols, bg:localPal.bg},
+      density:TRAITS.density,
+      noise:TRAITS.noise, noiseLabel:TRAITS.noiseLabel,
+      trackWidth:TRAITS.trackWidth, trackWidthLabel:TRAITS.trackWidthLabel,
+      curvature:TRAITS.curvature, curvatureLabel:TRAITS.curvatureLabel,
+      speed:TRAITS.speed, speedLabel:TRAITS.speedLabel,
+      trace:TRAITS.trace,
+      vignetteMode:TRAITS.vignetteMode,
+      noiseScale, particlesPerBand:nums
+    };
+    const html=buildStandaloneHTML(config);
+    htmlFolder.file(`${fileStem}.html`, html);
+
+    records.push({
+      index:idx, seed, palIndex, palette:localPal.name,
+      pngName, htmlName:`${fileStem}.html`,
+      traits: JSON.parse(JSON.stringify(TRAITS)),
+      noiseScale, nums, frames, pngSize, dpi
+    });
+    progressEl.textContent = `Building Hi-Res bundle… ${idx}/${n}`;
+  }
+
+  LAST_RUN = { type:"ipfs-bundle-hires", timestamp:Date.now(), records, palIndexAtRun:palIndex };
+
+  zip.file("manifest.json", JSON.stringify(LAST_RUN,null,2));
+  const zipBlob = await zip.generateAsync({type:"blob"});
+  saveAs(zipBlob, `ipfs_bundle_hires_${Date.now()}.zip`);
+  progressEl.style.display = "none";
+  if(wasRunning){ loop(); running=true; toggleBtn.textContent="Pause"; }
+}
+
+async function exportMetadataOnlyFromLastRun(){
+  if(!LAST_RUN || !LAST_RUN.records || LAST_RUN.records.length===0){
+    alert("No previous bundle run to build metadata from. Run Export IPFS Bundle first.");
+    return;
+  }
+  const cid = (prompt("Enter IPFS CID for the folder that contains /images and /html:", "" )||"").trim();
+  if(!cid){ alert("CID is required to build metadata."); return; }
+
+  const recs = LAST_RUN.records;
+  const zip = new JSZip();
+  const metaFolder = zip.folder("metadata");
+
+  const csvRows = [["token_id","name","description","image","animation_url","attributes"].join(",")];
+
+  for(const r of recs){
+    const tokenId = r.index; // 1..N
+    const name = `Perlin Flow #${tokenId}`;
+    const description = "Generative Perlin flow field. Live HTML renders the artwork; PNG is a preview still.";
+    const image = `ipfs://${cid}/images/${r.pngName}`;
+    const animation_url = `ipfs://${cid}/html/${r.htmlName}`;
+
+    const attrs = [
+      {trait_type:"Palette", value:r.palette},
+      {trait_type:"Density", value: r.traits.density},
+      {trait_type:"Noise", value: r.traits.noiseLabel},
+      {trait_type:"Width", value: r.traits.trackWidthLabel},
+      {trait_type:"Curvature", value: r.traits.curvatureLabel},
+      {trait_type:"Speed", value: r.traits.speedLabel},
+      {trait_type:"Trace", value: r.traits.trace},
+      {trait_type:"Vignette", value: r.traits.vignetteMode},
+      {trait_type:"Glow", value: r.traits.glow? "On":"Off"},
+      {trait_type:"Strokes", value: r.traits.strokes? "On":"Off"},
+      {trait_type:"Palette Cycle", value: r.traits.paletteCycle? "On":"Off"},
+      {trait_type:"Pulse", value: r.traits.pulse? "On":"Off"},
+      {trait_type:"Shadow", value: r.traits.shadow? "On":"Off"},
+      {trait_type:"Scanlines", value: r.traits.scanlines? "On":"Off"},
+      {trait_type:"Kaleido", value: r.traits.kaleido? "On":"Off"},
+      {trait_type:"Dashes", value: r.traits.dashes? "On":"Off"},
+      {trait_type:"Orbit", value: r.traits.orbit? "On":"Off"},
+      {trait_type:"Edge Repel", value: r.traits.edgeRepel? "On":"Off"},
+      {trait_type:"Jitter+", value: r.traits.jitterPlus? "On":"Off"},
+      {trait_type:"Color Shift", value: r.traits.colorShift? "On":"Off"},
+      {trait_type:"Noise Shuffle", value: r.traits.noiseShuffle? "On":"Off"}
+    ];
+
+    const meta = { name, description, image, animation_url, attributes: attrs };
+    metaFolder.file(`${tokenId}.json`, JSON.stringify(meta,null,2));
+
+    csvRows.push([
+      tokenId,
+      csvEscape(name),
+      csvEscape(description),
+      csvEscape(image),
+      csvEscape(animation_url),
+      csvEscape(JSON.stringify(attrs))
+    ].join(","));
+  }
+
+  zip.file("metadata.csv", csvRows.join("\n"));
+  const blob = await zip.generateAsync({type:"blob"});
+  saveAs(blob, `metadata_${cid}_${Date.now()}.zip`);
+  alert("Metadata ZIP created. Upload /metadata/*.json or use CSV if the marketplace accepts it.");
+}
+
+async function rebuildExactBundleFromLastRun(){
+  if(!LAST_RUN || !LAST_RUN.records || LAST_RUN.records.length===0){
+    alert("No LAST_RUN to rebuild. Export an IPFS bundle first.");
+    return;
+  }
+  const wasRunning=running; if(wasRunning){ noLoop(); running=false; toggleBtn.textContent="Resume"; }
+  progressEl.style.display = "inline-block"; progressEl.textContent = `Rebuilding…`;
+
+  const zip = new JSZip();
+  const imgFolder = zip.folder("images");
+  const htmlFolder = zip.folder("html");
+  const p5Code=await fetchP5(); if(!p5Code){ alert("Couldn't fetch p5.min.js"); return; }
+  htmlFolder.file("p5.min.js", p5Code);
+
+  for(const r of LAST_RUN.records){
+    HASH = r.seed; setSeedInURL(HASH);
+    palIndex = r.palIndex;
+    Object.assign(TRAITS, r.traits);
+    noiseScale = r.noiseScale || noiseScale;
+    nums = r.nums || nums;
+    hardReset(HASH, palIndex);
+
+    const frames = r.frames || 900;
+    for(let f=0;f<frames;f++){ stepOnce(); if(f%90===0) await new Promise(res=>requestAnimationFrame(res)); }
+
+    const blob = await new Promise(res=>CANVAS.toBlob(res,"image/png"));
+    imgFolder.file(r.pngName, blob);
+
+    const localPal=PALETTES[palIndex];
+    const fileStem = r.htmlName.replace(/\.html$/,'');
+    const config={
+      name:`Perlin Flow #${r.index}`,
+      fileStem,
+      seed:HASH,
+      palette:{name:localPal.name, cols:localPal.cols, bg:localPal.bg},
+      density:TRAITS.density,
+      noise:TRAITS.noise, noiseLabel:TRAITS.noiseLabel,
+      trackWidth:TRAITS.trackWidth, trackWidthLabel:TRAITS.trackWidthLabel,
+      curvature:TRAITS.curvature, curvatureLabel:TRAITS.curvatureLabel,
+      speed:TRAITS.speed, speedLabel:TRAITS.speedLabel,
+      trace:TRAITS.trace,
+      vignetteMode:TRAITS.vignetteMode,
+      noiseScale, particlesPerBand:nums
+    };
+    const html=buildStandaloneHTML(config);
+    htmlFolder.file(r.htmlName, html);
+
+    progressEl.textContent = `Rebuilding… ${r.index}/${LAST_RUN.records.length}`;
+  }
+
+  zip.file("manifest_rebuild.json", JSON.stringify(LAST_RUN,null,2));
+  const blob = await zip.generateAsync({type:"blob"});
+  saveAs(blob, `rebuild_${Date.now()}.zip`);
+  progressEl.style.display = "none";
+  if(wasRunning){ loop(); running=true; toggleBtn.textContent="Pause"; }
+}
+
+/* ======================== Hi-Res PNG helper ======================== */
+async function renderPNGAt(pngSize=2048, dpi=2, frames=600){
+  const wasRunning = running;
+  const prevPD = pixelDensity();
+  const prevW  = width, prevH = height;
+  const prevBG = PALETTES[palIndex].bg;
+  const prevVis = CANVAS.style.visibility;
+
+  CANVAS.style.visibility = 'hidden';
+  try {
+    noLoop(); running = false;
+
+    pixelDensity(dpi);
+    resizeCanvas(pngSize, pngSize, true);
+
+    hardReset(HASH, palIndex);
+
+    for(let f=0;f<frames;f++){
+      stepOnce();
+      if(f%90===0) await new Promise(r=>requestAnimationFrame(r));
+    }
+
+    const blob = await new Promise(res => CANVAS.toBlob(res, "image/png"));
+
+    pixelDensity(prevPD);
+    resizeCanvas(prevW, prevH, true);
+    background(prevBG);
+    hardReset(HASH, palIndex);
+
+    if (wasRunning) { loop(); running = true; }
+    return blob;
+  } finally {
+    CANVAS.style.visibility = prevVis || 'visible';
+  }
+}
+
+/* ======================== GIF Export (30s) with watchdog ======================== */
+async function loadGIFLib(){
+  if(window.GIF) return true;
+  const src = "https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.js";
+  try{
+    await new Promise((resolve,reject)=>{
+      const s=document.createElement('script');
+      s.src=src; s.async=true; s.onload=resolve; s.onerror=reject; document.head.appendChild(s);
+    });
+    return !!window.GIF;
+  }catch(e){
+    alert("Failed to load GIF encoder library.");
+    return false;
+  }
+}
+
+async function exportGIF30s(){
+  const fps  = Math.max(12, Math.min(60, +gifFpsInput.value || 24));
+  const size = Math.max(512, Math.min(4096, +gifSizeInput.value || 2048));
+  const totalFrames = fps * 30;
+
+  if (size >= 2048 && fps >= 24) {
+    const ok = confirm(`Heads-up: ${size}x${size} @ ${fps}fps for 30s is VERY heavy. Continue?`);
+    if(!ok) return;
+  }
+
+  if(!(await loadGIFLib())) return;
+
+  const wasRunning = running;
+  const prevPD = pixelDensity();
+  const prevW = width, prevH = height;
+  const prevBG = PALETTES[palIndex].bg;
+  const prevVis = CANVAS.style.visibility;
+
+  CANVAS.style.visibility = 'hidden';
+  noLoop(); running = false; toggleBtn.textContent = "Resume";
+
+  pixelDensity(1);
+  resizeCanvas(size, size, true);
+  hardReset(HASH, palIndex);
+  try{ window.frameCount = 0; }catch(e){}
+
+  const workerURL = "https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.worker.js";
+  const gif = new GIF({
+    workers: 1,
+    workerScript: workerURL,
+    quality: 12,
+    dither: false,
+    transparent: null,
+    repeat: 0,
+    width: size,
+    height: size
+  });
+
+  let finished = false;
+  let watchdog;
+  function armWatchdog(ms=45000){
+    if (watchdog) clearTimeout(watchdog);
+    watchdog = setTimeout(()=>{
+      if(!finished){
+        alert("GIF encoder appears stalled near the end. Try lower px/FPS, or use the WebM export.");
+      }
+    }, ms);
+  }
+
+  gif.on('progress', p=>{
+    progressEl.textContent = `GIF: encoding ${Math.round(p*100)}%`;
+    armWatchdog();
+  });
+
+  gif.on('finished', blob=>{
+    finished = true;
+    clearTimeout(watchdog);
+    saveAs(blob, `perlin_${HASH.slice(2,10)}_${size}px_${fps}fps_30s.gif`);
+    restore();
+  });
+
+  gif.on('abort', ()=>{
+    clearTimeout(watchdog);
+    alert('GIF encoding aborted (likely memory). Try smaller size/FPS or WebM.');
+    restore();
+  });
+
+  gif.on('error', (e)=>{
+    clearTimeout(watchdog);
+    console.error(e);
+    alert('GIF encoding error. Try smaller size/FPS or the WebM fallback.');
+    restore();
+  });
+
+  progressEl.style.display = "inline-block";
+  progressEl.textContent = `GIF: rendering frames 0/${totalFrames}`;
+
+  for (let i = 0; i < totalFrames; i++){
+    stepOnce();
+    gif.addFrame(CANVAS, { copy:true, delay: Math.round(1000/fps), dispose: 2 });
+    if (i % 30 === 0){
+      progressEl.textContent = `GIF: rendering frames ${i}/${totalFrames}`;
+      await new Promise(r => setTimeout(r, 0));
+    }
+  }
+
+  armWatchdog(60000);
+  gif.render();
+
+  function restore(){
+    pixelDensity(prevPD);
+    resizeCanvas(prevW, prevH, true);
+    background(prevBG);
+    hardReset(HASH, palIndex);
+    progressEl.style.display = "none";
+    CANVAS.style.visibility = prevVis || 'visible';
+    if (wasRunning){ loop(); running = true; toggleBtn.textContent = "Pause"; }
+  }
+}
+
+/* ======================== WebM Export (30s, reliable) ======================== */
+async function exportWEBM30s(){
+  const fps  = Math.max(12, Math.min(60, +gifFpsInput.value || 24));
+  const size = Math.max(512, Math.min(4096, +gifSizeInput.value || 2048));
+
+  const wasRunning = running;
+  const prevPD = pixelDensity();
+  const prevW = width, prevH = height;
+  const prevBG = PALETTES[palIndex].bg;
+  const prevVis = CANVAS.style.visibility;
+
+  CANVAS.style.visibility = 'hidden';
+  noLoop(); running = false; toggleBtn.textContent = "Resume";
+
+  pixelDensity(1);
+  resizeCanvas(size, size, true);
+  hardReset(HASH, palIndex);
+  try { window.frameCount = 0; } catch(e){}
+
+  const stream = CANVAS.captureStream(fps);
+  const chunks = [];
+  let mime = 'video/webm;codecs=vp9';
+  if (!MediaRecorder.isTypeSupported(mime)) mime = 'video/webm;codecs=vp8';
+  if (!MediaRecorder.isTypeSupported(mime)) mime = 'video/webm';
+
+  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 20_000_000 });
+  rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  rec.onstop = () => {
+    const blob = new Blob(chunks, { type: mime });
+    saveAs(blob, `perlin_${HASH.slice(2,10)}_${size}px_${fps}fps_30s.webm`);
+    restore();
+  };
+
+  progressEl.style.display = "inline-block";
+  progressEl.textContent = `WebM: recording 0/30s`;
+
+  let start;
+  function tick(ts){
+    if (!start) start = ts;
+    const elapsed = (ts - start) / 1000;
+    progressEl.textContent = `WebM: recording ${Math.min(30, elapsed).toFixed(1)}/30s`;
+    stepOnce();
+    if (elapsed < 30) requestAnimationFrame(tick);
+    else rec.stop();
+  }
+
+  rec.start();
+  requestAnimationFrame(tick);
+
+  function restore(){
+    pixelDensity(prevPD);
+    resizeCanvas(prevW, prevH, true);
+    background(prevBG);
+    hardReset(HASH, palIndex);
+    progressEl.style.display = "none";
+    CANVAS.style.visibility = prevVis || 'visible';
+    if (wasRunning){ loop(); running = true; toggleBtn.textContent = "Pause"; }
+  }
+}
+
+/* ======================== p5 fetch/fallback ======================== */
+async function fetchP5(){
+  const P5_URLs=[
+    "https://cdn.jsdelivr.net/npm/p5@1.9.2/lib/p5.min.js",
+    "https://unpkg.com/p5@1.9.2/lib/p5.min.js",
+    "https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.2/p5.min.js"
+  ];
+  for(const u of P5_URLs){
+    try{ const r=await fetch(u,{cache:"no-cache"}); if(r.ok){ return await r.text(); } }catch(e){}
+  }
+  return null;
+}
+(function loadP5WithFallback(){
+  const urls=[
+    "https://cdn.jsdelivr.net/npm/p5@1.9.2/lib/p5.min.js",
+    "https://unpkg.com/p5@1.9.2/lib/p5.min.js",
+    "https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.2/p5.min.js"
+  ];
+  let i=0;
+  function tryNext(){
+    if(i>=urls.length){
+      document.getElementById('p5loadfail').style.display='block';
+      return;
+    }
+    const s=document.createElement('script');
+    s.src=urls[i++]; s.async=true;
+    s.onload=()=>{/* p5 calls setup()/draw() */};
+    s.onerror=()=>setTimeout(tryNext, 50);
+    document.head.appendChild(s);
+  }
+  if(document.readyState==="loading"){ document.addEventListener("DOMContentLoaded",tryNext); }
+  else { tryNext(); }
+})();
+
+  </script>
+</body>
+</html>
