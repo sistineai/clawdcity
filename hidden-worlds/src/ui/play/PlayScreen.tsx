@@ -27,7 +27,6 @@ import { Icon } from '../components/Glyph';
 
 export interface PlayProps {
   puzzle: PuzzleRef;
-  challenge?: ChallengeData | undefined;
 }
 
 interface Ready {
@@ -35,7 +34,7 @@ interface Ready {
   idMap: Int32Array;
 }
 
-export function PlayScreen({ puzzle: puzzleProp, challenge }: PlayProps) {
+export function PlayScreen({ puzzle: puzzleProp }: PlayProps) {
   // The parent re-renders on every save; keep one puzzle object per puzzle so callbacks stay stable.
   const key = refKey(puzzleProp);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -102,6 +101,46 @@ export function PlayScreen({ puzzle: puzzleProp, challenge }: PlayProps) {
         if (!live) return;
         const t = now();
         const st = useApp.getState();
+        let challenge: ChallengeData | undefined;
+        if (puzzle.mode === 'daily' && st.pendingChallenge?.date === puzzle.date) {
+          challenge = st.pendingChallenge;
+          st.setPendingChallenge(null);
+        }
+        const done = puzzle.mode === 'daily' ? st.doc.daily[puzzle.date] : undefined;
+        if (done && puzzle.mode === 'daily' && !st.doc.active[key]) {
+          // Already solved: show the finished world to look around, never a replay that would
+          // overwrite the result. A friend's challenge on a solved day goes straight to the comparison.
+          const view: ActivePuzzle = {
+            found: spec.targets.map((x) => x.uid),
+            resident: !!done.resident,
+            misses: done.misses,
+            hints: done.hints,
+            elapsedMs: done.timeMs,
+            startedOn: puzzle.date,
+            updatedAt: t,
+          };
+          activeRef.current = view;
+          doneRef.current = true;
+          runSince.current = null;
+          setActive(view);
+          setReady({ spec, idMap });
+          setResult({
+            puzzle,
+            spec,
+            stars: done.stars as 1 | 2 | 3,
+            timeMs: done.timeMs,
+            misses: done.misses,
+            hints: done.hints,
+            found: spec.targets.length,
+            total: spec.targets.length,
+            residentId: done.resident,
+            late: done.late,
+            streak: displayedStreak(st.doc.streak, todayKey(t)),
+            challenge: challenge ?? done.challenge ?? null,
+          });
+          setSheetOpen(!!challenge);
+          return;
+        }
         const r = startPuzzle(st.doc, puzzle, todayKey(t), t, challenge);
         st.update(() => r.doc);
         activeRef.current = r.active;
@@ -125,7 +164,6 @@ export function PlayScreen({ puzzle: puzzleProp, challenge }: PlayProps) {
       live = false;
       clearTimeout(timer);
     };
-    // challenge is read once at start
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pack, key]);
 

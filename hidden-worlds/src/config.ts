@@ -3,7 +3,9 @@
 
 /** The working title. This is the only place the name is written. */
 export const APP_NAME = 'Hidden Worlds';
-export const APP_SHORT_NAME = 'Hidden Worlds';
+export const APP_SHORT_NAME = APP_NAME;
+/** File-name form of the name, for downloads. */
+export const APP_SLUG = APP_NAME.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 export const APP_DESCRIPTION =
   'A new seek-and-find puzzle every day. Pan around a hand-built world and spot what is hiding.';
 export const APP_VERSION = '1.0.0';

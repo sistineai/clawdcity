@@ -7,7 +7,7 @@
 - [x] M3 Play (pan/zoom/tap, tray, hint, lockout, resident card, result, save/resume, E2E-1..4, PACK-A2)
 - [x] M4 Daily, archive, Explore (home with countdown, archive window, ladders, route guards)
 - [x] M5 Progress and collection (storage recovery and migration, streak, stats, collection, badges)
-- [ ] M6 Sharing
+- [x] M6 Sharing (text, picture, Web Share + fallbacks, challenge links, OG tags)
 - [ ] M7 Shell, Premium, adapters, PWA
 - [ ] M8 Content tools and hardening
 

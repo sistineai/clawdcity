@@ -24,7 +24,9 @@
     "calendar": "tsx tools/calendar.ts",
     "golden": "tsx tools/golden.ts",
     "verify": "tsx tools/verify.ts",
-    "render:samples": "tsx tools/render-samples.ts"
+    "render:samples": "tsx tools/render-samples.ts",
+    "og:image": "tsx tools/og-image.ts",
+    "icons": "tsx tools/icons.ts"
   },
   "dependencies": {
     "react": "^19.3.1",

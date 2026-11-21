@@ -445,8 +445,16 @@
 }
 .share-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--s2);
+}
+.share-row > :nth-child(3) {
+  grid-column: 1 / -1;
+}
+.share-row .btn {
+  white-space: normal;
+  text-align: center;
+  line-height: 1.15;
 }
 
 /* tray to the side in landscape and on desktop */

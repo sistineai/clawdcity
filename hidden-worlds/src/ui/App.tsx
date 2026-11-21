@@ -2,7 +2,8 @@ import { Component, lazy, Suspense, useEffect, type ErrorInfo, type ReactNode } 
 import { track } from '../adapters';
 import { loadPack } from '../engine/pack/load';
 import { now } from '../game/clock';
-import { isDateKey, todayKey } from '../game/dates';
+import { isDateKey, puzzleNumber, todayKey } from '../game/dates';
+import { decodeChallenge } from '../game/challenge';
 import { isLevel, isWorld } from '../game/puzzles';
 import { useApp, getDoc } from '../state/store';
 import { S } from '../strings';
@@ -52,6 +53,29 @@ function Toast() {
       {toast?.text ?? ''}
     </div>
   );
+}
+
+/** SHARE-4: a `?c=` challenge link opens that day's puzzle if it is free to play; bad links are ignored. */
+function openChallenge(): boolean {
+  let raw: string | null;
+  try {
+    const u = new URL(location.href);
+    raw = u.searchParams.get('c');
+    if (raw === null) return false;
+    u.searchParams.delete('c');
+    history.replaceState(history.state, '', u.pathname + u.search + u.hash);
+  } catch {
+    return false;
+  }
+  const c = decodeChallenge(raw);
+  const access = c ? dailyAccess(c.date, todayKey(now())) : 'locked';
+  const valid = !!c && (access === 'today' || access === 'archive');
+  track('challenge_open', { puzzle_no: c ? puzzleNumber(c.date) : null, valid });
+  if (!c || !valid) return false;
+  const st = useApp.getState();
+  st.setPendingChallenge(c);
+  go(`play/daily/${c.date}`, { replace: true });
+  return true;
 }
 
 function Redirect({ to }: { to: string }) {
@@ -110,6 +134,7 @@ export function App() {
       standalone: typeof matchMedia !== 'undefined' && matchMedia('(display-mode: standalone)').matches,
       version: '1',
     });
+    if (openChallenge()) return;
     // DAILY-5: first-time visitors go straight into today's puzzle
     if (st.first && !location.hash.replace(/^#\/?/, ''))
       go(`play/daily/${todayKey(now())}`, { replace: true });

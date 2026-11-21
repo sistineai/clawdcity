@@ -1,0 +1,47 @@
+// SHARE-5: the one static share image for link previews (public/og.png, 1200 x 630).
+import { writeFileSync } from 'node:fs';
+import { GlobalFonts } from '@napi-rs/canvas';
+import { APP_NAME } from '../src/config.ts';
+import { paintBackground } from '../src/engine/render/backgrounds.ts';
+import { drawVector } from '../src/packs/vector/art.ts';
+import { COLORS } from '../src/engine/render/palette.ts';
+import { createCanvas, ctx2d } from './lib/canvas.ts';
+
+GlobalFonts.registerFromPath('src/ui/fonts/bricolage-grotesque-latin.woff2', 'Bricolage');
+GlobalFonts.registerFromPath('src/ui/fonts/figtree-latin.woff2', 'Figtree');
+const W = 1200;
+const H = 630;
+const c = createCanvas(W, H);
+const x = ctx2d(c);
+x.save();
+x.scale(W / 3200, (H / 2000) * 1.0);
+paintBackground(x, 'meadow', 'og-image', 3200, 2000, 500);
+x.restore();
+const sprite = (id: string, color: string | null, cx: number, cy: number, s: number) => {
+  x.save();
+  x.translate(cx, cy);
+  drawVector(x, id, color, s, COLORS);
+  x.restore();
+};
+sprite('tree', '#4f9d4a', 120, 430, 260);
+sprite('cottage', '#c0563f', 1080, 440, 250);
+sprite('mossy', null, 250, 520, 110);
+sprite('juno', null, 960, 535, 100);
+sprite('key', 'red', 360, 560, 60);
+sprite('balloon', 'teal', 1010, 120, 70);
+x.fillStyle = 'rgba(241,245,234,0.94)';
+x.fillRect(240, 150, 720, 300);
+x.fillStyle = '#ffb81c';
+x.fillRect(240, 150, 720, 10);
+x.strokeStyle = '#13231d';
+x.lineWidth = 3;
+x.strokeRect(258, 178, 684, 254);
+x.fillStyle = '#13231d';
+x.textAlign = 'center';
+x.font = '800 76px Bricolage';
+x.fillText(APP_NAME.toUpperCase(), 600, 300);
+x.font = '600 34px Figtree';
+x.fillStyle = '#586c61';
+x.fillText('A new seek-and-find world every day', 600, 370);
+writeFileSync('public/og.png', c.toBuffer('image/png'));
+console.log('wrote public/og.png');

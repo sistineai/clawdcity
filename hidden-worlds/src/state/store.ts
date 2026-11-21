@@ -6,7 +6,7 @@ import { now } from '../game/clock';
 import { todayKey } from '../game/dates';
 import type { SpritePack } from '../engine/pack/types';
 import { loadDoc, pruneDoc, saveDoc } from './storage';
-import { freshDoc, type SaveDoc, type Settings } from './schema';
+import { freshDoc, type ChallengeData, type SaveDoc, type Settings } from './schema';
 import { newDeviceId } from './storage';
 
 export interface Toast {
@@ -21,6 +21,9 @@ interface AppState {
   pack: SpritePack | null;
   packError: string | null;
   toast: Toast | null;
+  /** A friend's challenge opened from a link, waiting for its puzzle to start. */
+  pendingChallenge: ChallengeData | null;
+  setPendingChallenge(c: ChallengeData | null): void;
   update(fn: (d: SaveDoc) => SaveDoc): void;
   setSetting<K extends keyof Settings>(key: K, value: Settings[K]): void;
   setPack(p: SpritePack | null, error?: string | null): void;
@@ -43,6 +46,10 @@ export const useApp = create<AppState>()((set, get) => ({
   pack: null,
   packError: null,
   toast: null,
+  pendingChallenge: null,
+  setPendingChallenge(c) {
+    set({ pendingChallenge: c });
+  },
   update(fn) {
     const doc = fn(get().doc);
     saveDoc(doc);
