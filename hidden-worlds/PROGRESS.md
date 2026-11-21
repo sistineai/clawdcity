@@ -9,10 +9,13 @@
 - [x] M5 Progress and collection (storage recovery and migration, streak, stats, collection, badges)
 - [x] M6 Sharing (text, picture, Web Share + fallbacks, challenge links, OG tags)
 - [x] M7 Shell, Premium, adapters, PWA (settings, about, colour-blind, motion, offline, update prompt, install nudge)
-- [ ] M8 Content tools and hardening
+- [x] M8 Content tools and hardening (audit, calendar, E2E-16, independent review + fixes, README, REPORT)
 
 ## Notes
 - Project lives in `hidden-worlds/` inside the `clawdcity` repo.
 - Browsers: Chromium preinstalled at /opt/pw-browsers; Firefox and WebKit installed with `npx playwright install firefox webkit` plus `install-deps`.
 - Look at output: `npm run render:samples` writes PNGs to out/samples/<pack>/. `/#/dev` is the engine bench.
 - Golden: `npm run golden` regenerates tests/golden/golden.json (only with an ENGINE_VERSION bump).
+
+## State
+All milestones done; `npm run verify` passes on a clean clone. See REPORT.md (one BLOCKED item: E2E-10 offline reload in Playwright WebKit). Stretch items S1-S3 not started.
