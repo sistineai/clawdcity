@@ -4,7 +4,7 @@ import { generate, type PackLogicData } from '../../src/engine/logic';
 import { computeGolden } from '../../src/engine/golden';
 import { ENGINE_VERSION } from '../../src/config';
 import { loadPackNode } from '../../tools/lib/node-pack';
-import { mean, p95, runInvariants } from './engine-invariants';
+import { mean, p95, runInvariants } from '../../tools/lib/invariants';
 
 let pack: PackLogicData;
 beforeAll(async () => {

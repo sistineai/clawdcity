@@ -6,8 +6,8 @@ import {
   generate,
   type PackLogicData,
   type PuzzleSpec,
-} from '../../src/engine/logic';
-import { ENGINE } from '../../src/config';
+} from '../../src/engine/logic/index.ts';
+import { ENGINE } from '../../src/config.ts';
 
 export interface InvariantReport {
   puzzles: number;

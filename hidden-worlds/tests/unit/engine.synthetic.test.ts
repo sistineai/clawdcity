@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { generate } from '../../src/engine/logic';
 import { syntheticPack } from '../fixtures/synthetic-pack';
-import { mean, p95, runInvariants } from './engine-invariants';
+import { mean, p95, runInvariants } from '../../tools/lib/invariants';
 
 const pack = syntheticPack();
 
