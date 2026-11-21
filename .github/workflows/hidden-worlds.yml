@@ -1,0 +1,25 @@
+name: hidden-worlds verify
+on:
+  push:
+    paths: ['hidden-worlds/**', '.github/workflows/hidden-worlds.yml']
+  pull_request:
+    paths: ['hidden-worlds/**', '.github/workflows/hidden-worlds.yml']
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: hidden-worlds
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: hidden-worlds/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npm run verify
+        env:
+          CI: '1'

@@ -1,0 +1,52 @@
+:root {
+  /* palette: a naturalist's field guide */
+  --ink: #13231d;
+  --ink-soft: #2a3d34;
+  --spruce: #1b3a30;
+  --spruce-deep: #12291f;
+  --spruce-hi: #24503f;
+  --paper: #f1f5ea;
+  --paper-deep: #e4ebdb;
+  --card: #ffffff;
+  --line: #cdd8c6;
+  --line-soft: #e2e9da;
+  --muted: #586c61;
+  --on-spruce: #f1f5ea;
+  --on-spruce-muted: #c5d6ca;
+  --gold: #ffb81c;
+  --gold-hi: #ffc94d;
+  --gold-deep: #8a5b00;
+  --flare: #e5532d;
+  --flare-deep: #b23a17;
+  --found: #e2ebd8;
+  --scrim: rgba(19, 35, 29, 0.55);
+  --shadow: 0 10px 30px rgba(19, 35, 29, 0.22);
+  --shadow-sm: 0 2px 8px rgba(19, 35, 29, 0.16);
+
+  /* type */
+  --display: 'Bricolage Grotesque', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --body: 'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* space and shape */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+  --r1: 6px;
+  --r2: 10px;
+  --r3: 16px;
+  --r-pill: 999px;
+  --tap: 44px;
+  --rule: 1px solid var(--line);
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur: 180ms;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  color-scheme: light;
+}

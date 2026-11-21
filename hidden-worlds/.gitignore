@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dist-e2e/
+out/
+test-results/
+playwright-report/
+.env
+.env.local
+*.log
+coverage/
+prototype/test/node_modules/
+prototype/test/out/

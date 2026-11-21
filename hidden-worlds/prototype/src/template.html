@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hidden Worlds Engine Prototype</title>
+<style>
+/*STYLE*/
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="bar">
+    <div class="brand">
+      <h1>Hidden Worlds</h1>
+      <span class="tag">Engine prototype</span>
+    </div>
+    <p class="meta" id="puzzleLabel">&nbsp;</p>
+    <div class="score">
+      <span id="timer" aria-label="Time taken">0:00</span>
+      <span id="count" aria-label="Targets found"><b id="foundN">0</b><small>/<span id="totalN">0</span></small></span>
+    </div>
+    <div class="actions">
+      <button class="btn ghost" id="hintBtn" type="button">Hint</button>
+      <button class="btn gold" id="engineBtn" type="button" aria-expanded="false" aria-controls="drawer">Engine</button>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+    <canvas id="view" tabindex="0" aria-label="The puzzle world. Drag to move around, scroll or pinch to zoom, and click an object from the list below to find it."></canvas>
+    <div class="zoom">
+      <button type="button" id="zin" aria-label="Zoom in">+</button>
+      <button type="button" id="zout" aria-label="Zoom out">&minus;</button>
+      <button type="button" id="zfit" aria-label="Show the whole world">Fit</button>
+    </div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <p id="status" class="status" role="status">Loading the engine</p>
+
+    <aside id="drawer" hidden aria-label="Engine panel">
+      <div class="drawer-head">
+        <h2>Engine</h2>
+        <button class="btn line" type="button" id="drawerClose">Close</button>
+      </div>
+      <p class="lede">Code builds every puzzle from a seed. The art here is placeholder; the placement, checking and click detection are the real thing.</p>
+
+      <form id="genForm" class="group">
+        <label for="seed">Seed</label>
+        <div class="row">
+          <input id="seed" type="text" autocomplete="off" spellcheck="false">
+          <button class="btn line" type="button" id="todayBtn">Today</button>
+          <button class="btn line" type="button" id="randBtn">Random</button>
+        </div>
+        <label for="difficulty">Difficulty <output id="diffOut" for="difficulty">Medium</output></label>
+        <input id="difficulty" type="range" min="1" max="5" step="1" value="3">
+        <button class="btn solid" type="submit" id="genBtn">Build this puzzle</button>
+      </form>
+
+      <fieldset class="group">
+        <legend>See what the engine knows</legend>
+        <label class="check" for="truth"><input type="checkbox" id="truth"> Show answers and lookalike decoys</label>
+        <label class="check" for="ids"><input type="checkbox" id="ids"> Show the ID map (which sprite owns each pixel)</label>
+      </fieldset>
+
+      <section class="group">
+        <h3>This puzzle</h3>
+        <dl id="stats"></dl>
+      </section>
+
+      <section class="group">
+        <h3>Targets</h3>
+        <div class="tablewrap">
+          <table id="ttable">
+            <thead><tr><th scope="col">Target</th><th scope="col">Visible</th><th scope="col">Size</th><th scope="col">Nearby</th><th scope="col">Rating</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="note">Rating is a 0 to 100 estimate of how hard the target is to spot, from how much is hidden, how small it is, how many lookalikes exist and how crowded its surroundings are.</p>
+      </section>
+
+      <section class="group">
+        <h3>Residents collected</h3>
+        <div id="collection"></div>
+        <p class="note">Each puzzle hides one resident. Found residents are saved in this browser only.</p>
+      </section>
+
+      <section class="group">
+        <h3>How it works</h3>
+        <ol class="steps">
+          <li>The seed picks the targets, a set of lookalike decoys in other colours, and the filler objects.</li>
+          <li>Each target goes either in the open or partly behind a tree, bush or building.</li>
+          <li>The engine stacks a mask of every sprite in draw order, so it knows which sprite is on top at every pixel.</li>
+          <li>Any target that shows less than the difficulty allows is moved, and the check runs again.</li>
+        </ol>
+      </section>
+    </aside>
+
+    <section id="done" class="sheet" hidden role="dialog" aria-labelledby="doneTitle">
+      <h2 id="doneTitle">All found</h2>
+      <p id="doneLine"></p>
+      <p id="doneResident" class="note"></p>
+      <label for="shareText" class="sr">Result to share</label>
+      <textarea id="shareText" readonly rows="3"></textarea>
+      <div class="row wrap">
+        <button class="btn solid" type="button" id="copyBtn">Copy result</button>
+        <button class="btn line" type="button" id="nextBtn">Build another puzzle</button>
+        <button class="btn line" type="button" id="doneClose">Keep looking around</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="tray" id="tray" aria-label="Things to find"></footer>
+</div>
+<script>
+/*ENGINE*/
+</script>
+<script>
+/*APP*/
+</script>
+</body>
+</html>

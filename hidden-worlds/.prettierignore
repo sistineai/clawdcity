@@ -1,0 +1,9 @@
+dist
+dist-e2e
+out
+prototype
+public/packs
+src/packs/vector/*.bin
+tests/golden
+docs
+*.md

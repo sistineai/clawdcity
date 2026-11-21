@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#1b3a30" />
+    <title>Hidden Worlds</title>
+    <meta name="description" content="A new seek-and-find puzzle every day." />
+    <style>
+      /* Shown before any script or font arrives (SHELL-10). */
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #f1f5ea;
+        color: #13231d;
+      }
+      #boot {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        font:
+          600 16px system-ui,
+          -apple-system,
+          sans-serif;
+      }
+      #boot i {
+        display: block;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: 3px solid #cdd8c6;
+        border-top-color: #1b3a30;
+        animation: s 0.9s linear infinite;
+      }
+      @keyframes s {
+        to {
+          transform: rotate(1turn);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #boot i {
+          animation: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div id="boot" role="status"><i aria-hidden="true"></i><span>Opening the field guide…</span></div>
+    </div>
+    <script type="module" src="./src/main.tsx"></script>
+  </body>
+</html>
