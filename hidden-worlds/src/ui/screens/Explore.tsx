@@ -1,5 +1,11 @@
 // Explore (EXP-1..3, META-4): worlds with their unlock state, and each world's ladder of levels.
-import { EXPLORE_LEVELS, WORLD_ORDER, WORLD_UNLOCK, type WorldId } from '../../config';
+import {
+  EXPLORE_DIFFICULTY_BANDS,
+  EXPLORE_LEVELS,
+  WORLD_ORDER,
+  WORLD_UNLOCK,
+  type WorldId,
+} from '../../config';
 import { levelOpen, worldOpen } from '../../game/gates';
 import { exploreDifficulty } from '../../game/puzzles';
 import { distinctResidents, worldComplete } from '../../game/residents';
@@ -62,37 +68,56 @@ export function Levels({ world }: { world: WorldId }) {
   const pack = useApp((s) => s.pack);
   const name = pack?.logic.worlds.find((x) => x.id === world)?.name ?? world;
   const stars = doc.explore[world] ?? {};
+  const done = Object.keys(stars).length;
+  const bands = EXPLORE_DIFFICULTY_BANDS.map((b, i) => ({
+    difficulty: b.difficulty,
+    from: i === 0 ? 1 : EXPLORE_DIFFICULTY_BANDS[i - 1]!.upTo + 1,
+    to: b.upTo,
+  }));
+  const level = (n: number) => {
+    const open = levelOpen(doc, world, n);
+    const st = stars[String(n)] ?? 0;
+    return (
+      <li key={n}>
+        <button
+          type="button"
+          className={`level${open ? '' : ' locked'}${st ? ' done' : ''}`}
+          disabled={!open}
+          onClick={() => go(`play/explore/${world}/${n}`)}
+          data-testid={`level-${n}`}
+          aria-label={`${S.levelN(n)}, ${S.difficulty[exploreDifficulty(n)]}${open ? (st ? `, ${st} stars` : '') : `, ${S.locked}`}`}
+        >
+          <span className="num level-n">{n}</span>
+          {open ? (
+            <span className="level-stars" aria-hidden="true">
+              {[0, 1, 2].map((k) => (
+                <i key={k} className={k < st ? 'on' : ''} />
+              ))}
+            </span>
+          ) : (
+            <Icon name="lock" size={14} />
+          )}
+        </button>
+      </li>
+    );
+  };
   return (
     <Screen title={name} back="explore">
-      <ol className="levels" data-testid="levels">
-        {Array.from({ length: EXPLORE_LEVELS }, (_, i) => i + 1).map((n) => {
-          const open = levelOpen(doc, world, n);
-          const st = stars[String(n)] ?? 0;
-          return (
-            <li key={n}>
-              <button
-                type="button"
-                className={`level${open ? '' : ' locked'}${st ? ' done' : ''}`}
-                disabled={!open}
-                onClick={() => go(`play/explore/${world}/${n}`)}
-                data-testid={`level-${n}`}
-                aria-label={`${S.levelN(n)}, ${S.difficulty[exploreDifficulty(n)]}${open ? (st ? `, ${st} stars` : '') : `, ${S.locked}`}`}
-              >
-                <span className="num level-n">{n}</span>
-                {open ? (
-                  <span className="level-stars" aria-hidden="true">
-                    {[0, 1, 2].map((k) => (
-                      <i key={k} className={k < st ? 'on' : ''} />
-                    ))}
-                  </span>
-                ) : (
-                  <Icon name="lock" size={14} />
-                )}
-              </button>
-            </li>
-          );
-        })}
-      </ol>
+      <div className="world-banner">
+        <WorldThumb world={world} seed={`explore-${world}-cover`} />
+        <p className="world-banner-text">{S.levelsDone(done, EXPLORE_LEVELS)}</p>
+      </div>
+      {bands.map((b) => (
+        <section key={b.difficulty} className="band" aria-labelledby={`band-${b.difficulty}`}>
+          <h2 id={`band-${b.difficulty}`} className="band-head">
+            <span className="title">{S.difficulty[b.difficulty]}</span>
+            <span className="muted small">{S.levelsRange(b.from, b.to)}</span>
+          </h2>
+          <ol className="levels" start={b.from}>
+            {Array.from({ length: b.to - b.from + 1 }, (_, i) => level(b.from + i))}
+          </ol>
+        </section>
+      ))}
     </Screen>
   );
 }

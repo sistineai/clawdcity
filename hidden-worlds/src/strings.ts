@@ -102,6 +102,7 @@ export const S = {
   unlockNeed: (need: number, have: number) => `Find ${need} different residents to open (${have} of ${need})`,
   worldComplete: 'All residents found',
   levelsDone: (a: number, b: number) => `${a} of ${b} levels`,
+  levelsRange: (a: number, b: number) => `Levels ${a}–${b}`,
 
   // collection
   collectionTitle: 'Residents',
