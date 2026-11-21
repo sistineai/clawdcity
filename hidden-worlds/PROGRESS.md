@@ -2,7 +2,7 @@
 
 ## Status
 - [x] M0 Scaffold and verify pipeline
-- [ ] M1 Engine logic
+- [x] M1 Engine logic (synthetic masks: 300 puzzles, 0 forced, p95 ~60 ms)
 - [ ] M2 Packs and rendering
 - [ ] M3 Play
 - [ ] M4 Daily, archive, Explore

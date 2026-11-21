@@ -9,3 +9,10 @@ One line each: what, why, what was rejected.
 - Fonts are the latin subsets of Bricolage Grotesque (variable, wght + wdth axes) and Figtree (variable wght), copied from `@fontsource-variable` (dev dependency) into `src/ui/fonts/` and declared in our own `fonts.css` with `font-display: swap`. Rejected importing the packages' CSS because they pull every subset.
 - `verify` stops at the first failing stage, because later stages (budget, e2e) depend on earlier ones (build); the summary still lists every stage.
 - `lint` runs ESLint and `prettier --check`, so formatting is part of the definition of done.
+- Logic may import `src/config.ts` (pure data, itself import-free; a test asserts that) besides its own folder. ENG-9 asks for difficulty tuning in config, and logic must read it. Rejected passing config through `generate()` input because the spec fixes that input's shape.
+- `size` in a `PuzzleSpec` is world pixels of the sprite box's longer side, snapped to multiples of 2 (one ID-map pixel), which is the scale quantisation for ENG-3. `x`, `y` are the box centre, rounded to integers.
+- Rotation is quantised to 9 steps of 0.1 rad (-0.4..0.4, the prototype's range); residents use -0.1..0.1. Sin/cos are literal constants in `mask.ts`.
+- Sky-layer sprites carry `z > 0` (integer from the RNG); ground sprites `z = 0`. This replaces the prototype's separate `sky` flag in the output.
+- Targets are drawn from the world's small-sprite weights by weighted sampling without replacement (repeated `rng.weighted`); clutter by weighted pick from the remaining types. Rejected exponent-keyed weighted shuffle because it needs `Math.pow`.
+- The RNG seed is `<seed>#<difficulty>#<worldId>`, extending the prototype's `<seed>#<difficulty>`.
+- Transformed masks are cached per (pack, sprite, size, rotStep, flip) and placed at `floor(centre * 0.5)`, so a mask can sit up to half an ID pixel (one world pixel) off the drawn art. Deterministic, and far below tap tolerance.
