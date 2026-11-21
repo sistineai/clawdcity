@@ -13,6 +13,10 @@ import { Levels, Worlds } from './screens/Explore';
 import { Premium } from './screens/Premium';
 import { Collection } from './screens/Collection';
 import { Stats } from './screens/Stats';
+import { Settings } from './screens/Settings';
+import { About } from './screens/About';
+import { UpdatePrompt } from './screens/UpdatePrompt';
+import { useReducedMotion } from './hooks';
 import { dailyAccess, levelOpen, worldOpen } from '../game/gates';
 import type { WorldId } from '../config';
 import { PlayScreen } from './play/PlayScreen';
@@ -44,6 +48,15 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { error: b
       </main>
     );
   }
+}
+
+/** Reduced motion follows the system unless the player overrides it (SHELL-3). */
+function Motion() {
+  const reduce = useReducedMotion();
+  useEffect(() => {
+    document.documentElement.dataset.motion = reduce ? 'reduce' : 'full';
+  }, [reduce]);
+  return null;
 }
 
 function Toast() {
@@ -112,6 +125,8 @@ function Routes() {
   if (a === 'explore') return <Worlds />;
   if (a === 'collection') return <Collection />;
   if (a === 'stats') return <Stats />;
+  if (a === 'settings') return <Settings />;
+  if (a === 'about') return <About />;
   if (a === 'premium') return <Premium source={route.query.get('source') ?? 'other'} />;
   return <Home />;
 }
@@ -141,8 +156,10 @@ export function App() {
   }, [setPack]);
   return (
     <ErrorBoundary>
+      <Motion />
       <Routes />
       <Toast />
+      <UpdatePrompt />
     </ErrorBoundary>
   );
 }

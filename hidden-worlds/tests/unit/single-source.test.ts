@@ -14,12 +14,21 @@ describe('single sources', () => {
     const hits = files.filter((f) => readFileSync(f, 'utf8').includes(APP_NAME));
     expect(hits).toEqual(['src/config.ts']);
   });
+  it('the checker catches global calls', () => {
+    const re = /(?:\bwindow\.|(?<![.\w$]))(alert|confirm|prompt)\s*\((?!\)\s*:)/;
+    expect(re.test('alert("x")')).toBe(true);
+    expect(re.test('window.confirm("x")')).toBe(true);
+    expect(re.test(' prompt()')).toBe(true);
+    expect(re.test('ev.prompt()')).toBe(false);
+    expect(re.test('  prompt(): Promise<void>;')).toBe(false);
+  });
   it('no alert, confirm or prompt anywhere in the app', () => {
     for (const f of walk('src').filter((x) => /\.tsx?$/.test(x))) {
       const code = readFileSync(f, 'utf8')
         .replace(/\/\*[\s\S]*?\*\//g, '')
         .replace(/\/\/.*$/gm, '');
-      expect(code, f).not.toMatch(/\b(window\.)?(alert|confirm|prompt)\s*\(/);
+      // global calls only: not methods such as BeforeInstallPromptEvent.prompt()
+      expect(code, f).not.toMatch(/(?:\bwindow\.|(?<![.\w$]))(alert|confirm|prompt)\s*\((?!\)\s*:)/);
     }
   });
 });

@@ -556,3 +556,162 @@
     border-right: var(--rule);
   }
 }
+
+/* ---------- settings ---------- */
+.settings-group {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r2);
+  padding: 0 var(--s4);
+}
+.setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s4);
+  padding: var(--s3) 0;
+  border: 0;
+  border-bottom: var(--rule);
+  margin: 0;
+  min-width: 0;
+}
+.settings-group > :last-child {
+  border-bottom: 0;
+}
+.setting-text {
+  display: grid;
+  gap: 2px;
+}
+.setting label,
+.setting legend {
+  font-weight: 700;
+  font-size: 17px;
+}
+.setting.motion {
+  flex-wrap: wrap;
+}
+.setting.motion legend {
+  float: left;
+  padding: 0;
+  margin-right: auto;
+}
+.switch {
+  flex: none;
+  width: 58px;
+  height: var(--tap);
+  border-radius: var(--r-pill);
+  border: 0;
+  background: transparent;
+  position: relative;
+  padding: 0;
+}
+.switch::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  top: 8px;
+  bottom: 8px;
+  border-radius: var(--r-pill);
+  background: var(--line);
+  transition: background var(--dur) var(--ease);
+}
+.switch .knob {
+  position: absolute;
+  top: 11px;
+  left: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--dur) var(--ease);
+}
+.switch.on::before {
+  background: var(--spruce);
+}
+.switch.on .knob {
+  transform: translateX(24px);
+}
+.segmented {
+  display: inline-flex;
+  border: 1.5px solid var(--line);
+  border-radius: var(--r2);
+  overflow: hidden;
+}
+.segmented button {
+  min-height: var(--tap);
+  padding: 0 var(--s3);
+  border: 0;
+  background: var(--card);
+  font-weight: 600;
+}
+.segmented button + button {
+  border-left: 1.5px solid var(--line);
+}
+.segmented button.on {
+  background: var(--spruce);
+  color: var(--on-spruce);
+}
+.btn.danger {
+  color: var(--flare-deep);
+  border-color: #e7b9a9;
+  align-self: flex-start;
+}
+.btn.danger-solid {
+  background: var(--flare-deep);
+  border-color: var(--flare-deep);
+  color: #fff;
+}
+.sheet-title {
+  font-size: 30px;
+}
+
+/* ---------- about ---------- */
+.prose {
+  display: grid;
+  gap: var(--s2);
+  border-top: var(--rule);
+  padding-top: var(--s3);
+}
+.prose p {
+  max-width: 60ch;
+}
+.link-btn.left {
+  align-self: flex-start;
+  padding-left: 0;
+}
+
+/* ---------- pwa ---------- */
+.update-bar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--s4) + var(--safe-bottom));
+  transform: translateX(-50%);
+  width: min(520px, calc(100% - 24px));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: var(--r3);
+  padding: var(--s3) var(--s4);
+  box-shadow: var(--shadow);
+  z-index: 70;
+}
+.update-bar span {
+  flex: 1 1 160px;
+  font-weight: 600;
+}
+.nudge {
+  background: #fff4d6;
+  border: 1.5px solid var(--gold);
+  border-radius: var(--r2);
+  padding: var(--s4);
+  display: grid;
+  gap: var(--s2);
+}
+.nudge .title {
+  font-size: 24px;
+}

@@ -9,11 +9,14 @@ export const NOW = new Date(`${DAY}T10:00:00-05:00`); // 10:00 in the projects' 
 
 interface Fixtures {
   errors: string[];
+  /** URL prefixes a test deliberately requests off-origin (E2E-12 only). */
+  crossOriginAllowed: string[];
 }
 
 export const test = base.extend<Fixtures>({
+  crossOriginAllowed: [[], { option: true }],
   errors: [
-    async ({ page, baseURL }, use) => {
+    async ({ page, baseURL, crossOriginAllowed }, use) => {
       const errors: string[] = [];
       const origin = new URL(baseURL!).origin;
       page.on('console', (m) => {
@@ -22,6 +25,7 @@ export const test = base.extend<Fixtures>({
       page.on('pageerror', (e) => errors.push(`pageerror: ${e.message} @ ${(e.stack ?? '').slice(0, 300)}`));
       page.on('request', (r) => {
         const u = r.url();
+        if (crossOriginAllowed.some((p) => u.startsWith(p))) return;
         if (!u.startsWith('data:') && !u.startsWith('blob:') && !u.startsWith(origin))
           errors.push(`cross-origin request: ${u}`);
       });

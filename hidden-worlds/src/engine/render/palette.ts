@@ -13,18 +13,19 @@ export const COLORS: Palette = {
 };
 
 /**
- * Colour-blind palette (SHELL-4): spread across lightness so every pair stays apart under
- * simulated deuteranopia and protanopia. Hues stay close to the names so labels still fit.
+ * Colour-blind palette (SHELL-4): a lightness ladder (about 11 L* apart) chosen so every pair
+ * stays at least 5 L* apart under normal vision and simulated protanopia and deuteranopia.
+ * Hues stay in each name's family, and tray tags also print the colour name.
  */
 export const COLORS_CB: Palette = {
-  red: '#8c1d18',
-  orange: '#e66100',
-  yellow: '#ffe36e',
-  green: '#2d6b2a',
-  teal: '#5fc4c4',
-  blue: '#1a3f9e',
-  purple: '#7a52b8',
-  pink: '#f4a6c6',
+  red: '#4b1a02',
+  orange: '#c29005',
+  yellow: '#edf8af',
+  green: '#186d03',
+  teal: '#0bcb8e',
+  blue: '#043a8b',
+  purple: '#a147f5',
+  pink: '#fdc3d6',
 };
 
 export function hexToRgb(h: string): [number, number, number] {

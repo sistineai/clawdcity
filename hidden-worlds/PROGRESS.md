@@ -8,7 +8,7 @@
 - [x] M4 Daily, archive, Explore (home with countdown, archive window, ladders, route guards)
 - [x] M5 Progress and collection (storage recovery and migration, streak, stats, collection, badges)
 - [x] M6 Sharing (text, picture, Web Share + fallbacks, challenge links, OG tags)
-- [ ] M7 Shell, Premium, adapters, PWA
+- [x] M7 Shell, Premium, adapters, PWA (settings, about, colour-blind, motion, offline, update prompt, install nudge)
 - [ ] M8 Content tools and hardening
 
 ## Notes

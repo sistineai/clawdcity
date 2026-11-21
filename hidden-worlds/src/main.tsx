@@ -6,6 +6,9 @@ import './ui/styles/base.css';
 import './ui/styles/play.css';
 import './ui/styles/screens.css';
 import { App } from './ui/App';
+import { startPwa } from './ui/pwa';
+
+startPwa();
 
 const el = document.getElementById('root');
 if (el)
