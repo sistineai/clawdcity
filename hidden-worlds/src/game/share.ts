@@ -2,6 +2,7 @@
 import { APP_NAME } from '../config';
 import { formatTime } from './dates';
 import { starString } from './scoring';
+import { S } from '../strings';
 
 export interface ShareInput {
   mode: 'daily' | 'explore';
@@ -20,14 +21,13 @@ export interface ShareInput {
 export function shareText(i: ShareInput): string {
   const head =
     i.mode === 'daily'
-      ? `${APP_NAME} ${i.puzzleNo === null ? 'Preview' : `No. ${i.puzzleNo}`} · ${i.worldName}`
-      : `${APP_NAME} · ${i.worldName} level ${i.level ?? 1}`;
-  const hints = i.hints === 0 ? 'no hints' : i.hints === 1 ? '1 hint' : `${i.hints} hints`;
+      ? `${APP_NAME} ${S.shareHead(i.puzzleNo)} · ${i.worldName}`
+      : `${APP_NAME} · ${S.shareLevel(i.worldName, i.level ?? 1)}`;
   const lines = [
     head,
-    `${i.found} of ${i.total} found · ${formatTime(i.timeMs)} · ${hints} · ${starString(i.stars)}`,
+    `${S.shareFound(i.found, i.total)} · ${formatTime(i.timeMs)} · ${S.shareHints(i.hints)} · ${starString(i.stars)}`,
   ];
-  if (i.streak !== null && i.streak > 0) lines.push(`Streak ${i.streak}`);
+  if (i.streak !== null && i.streak > 0) lines.push(S.shareStreak(i.streak));
   lines.push(i.url);
   return lines.join('\n');
 }

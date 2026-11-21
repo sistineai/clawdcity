@@ -21,6 +21,25 @@ function htmlFromConfig(siteUrl: string): Plugin {
   };
 }
 
+/**
+ * SHELL-10: the app stylesheet must not block the first paint of the inline loading state
+ * (Firefox waits for it otherwise). It loads as non-blocking; main.tsx waits for it before
+ * rendering the app, so nothing ever shows unstyled.
+ */
+function nonBlockingCss(): Plugin {
+  return {
+    name: 'non-blocking-css',
+    transformIndexHtml: {
+      order: 'post',
+      handler: (html) =>
+        html.replace(
+          /<link rel="stylesheet"([^>]*?)href="([^"]+\.css)"([^>]*)>/g,
+          `<link rel="stylesheet"$1href="$2"$3 media="print" data-app-css onload="this.media='all'">`,
+        ),
+    },
+  };
+}
+
 // `--mode e2e` builds a separate bundle with the test hook compiled in; the
 // production bundle never contains it (checked by tools/budget.ts).
 export default defineConfig(({ mode }) => {
@@ -31,6 +50,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       htmlFromConfig(env.VITE_SITE_URL ?? ''),
+      nonBlockingCss(),
       // SHELL-8: manifest generated from config; offline play after the first load.
       VitePWA({
         registerType: 'prompt',

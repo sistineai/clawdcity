@@ -458,7 +458,7 @@
 }
 
 /* tray to the side in landscape and on desktop */
-@media (orientation: landscape) and (min-width: 700px) {
+@media (orientation: landscape) {
   .play {
     grid-template-rows: auto minmax(0, 1fr);
     grid-template-columns: minmax(0, 1fr) auto;
@@ -510,5 +510,37 @@
   }
   .play-bar {
     gap: var(--s2);
+  }
+}
+
+/* phones in landscape: a narrower side tray of icon-only tags */
+@media (orientation: landscape) and (max-width: 899px) {
+  .tray {
+    width: 112px;
+    padding: var(--s2) calc(var(--s2) + var(--safe-right)) var(--s2) var(--s2);
+  }
+  .chip {
+    padding: 4px 8px 4px 18px;
+    min-height: 50px;
+  }
+  .chip-text {
+    display: none;
+  }
+  .chip-colour {
+    display: block;
+    font-size: 10px;
+  }
+  .chip.resident {
+    padding-left: 8px;
+  }
+  .chip-label {
+    font-size: 11px;
+  }
+  .play-bar {
+    padding-top: calc(var(--s1) + var(--safe-top));
+    padding-bottom: var(--s1);
+  }
+  .play-label {
+    font-size: 18px;
   }
 }

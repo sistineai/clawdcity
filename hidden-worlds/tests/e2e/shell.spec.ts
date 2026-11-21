@@ -107,15 +107,99 @@ test.describe('shell', () => {
     });
   });
 
-  test('SHELL-10: a visible loading state appears at once', async ({ page }) => {
-    await setClock(page);
+  test('SHELL-10: a visible loading state appears within 100 ms, before any script runs', async ({
+    page,
+  }) => {
+    // no fake clock here: paint timing must be real
+    // hold every script back, so only the HTML's own loading state can paint
     await page.route('**/assets/*.js', async (r) => {
-      await new Promise((res) => setTimeout(res, 800));
+      await new Promise((res) => setTimeout(res, 1500));
       await r.continue();
     });
-    await page.goto('./', { waitUntil: 'commit' });
-    await expect(page.locator('#boot')).toBeVisible({ timeout: 100 + 400 });
-    await expect(page.getByTestId('world')).toBeVisible();
+    // timing on a shared test machine is noisy: the best of three loads must be within 100 ms
+    const paints: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      await page.goto('./', { waitUntil: 'commit' });
+      await expect(page.locator('#boot')).toBeVisible();
+      await expect(page.locator('#boot')).toContainText(/\w/);
+      const paint = await page.evaluate(
+        () =>
+          new Promise<number>((resolve) => {
+            // from the moment the HTML has arrived: what the page itself controls
+            const nav = performance.getEntriesByType('navigation')[0] as
+              PerformanceNavigationTiming | undefined;
+            const fcp = () => {
+              const t = performance.getEntriesByName('first-contentful-paint')[0]?.startTime;
+              return t === undefined ? undefined : t - (nav?.responseEnd ?? 0);
+            };
+            const poll = () => {
+              const t = fcp();
+              if (t !== undefined) resolve(t);
+              else setTimeout(poll, 10);
+            };
+            poll();
+          }),
+      );
+      paints.push(paint);
+    }
+    const paint = Math.min(...paints);
+    console.log(`loading state painted at ${paint.toFixed(0)} ms`);
+    expect(paint).toBeLessThanOrEqual(100);
+    await expect(page.getByTestId('world')).toBeVisible({ timeout: 15000 });
+  });
+
+  test('SHELL-6: every control is reachable by keyboard with a visible focus ring', async ({ page }) => {
+    await setClock(page);
+    await seed(page, doc());
+    await page.goto('./#/');
+    await expect(page.getByTestId('play-today')).toBeVisible();
+    const seen = new Set<string>();
+    for (let i = 0; i < 25; i++) {
+      await page.keyboard.press('Tab');
+      const f = await page.evaluate(() => {
+        const el = document.activeElement as HTMLElement | null;
+        if (!el || el === document.body) return null;
+        const cs = getComputedStyle(el);
+        return {
+          id: el.dataset.testid ?? el.textContent?.trim() ?? '',
+          tag: el.tagName,
+          ring: cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) >= 2,
+        };
+      });
+      if (!f) continue;
+      expect(f.tag, `${f.id} is a real control`).toMatch(/^(BUTTON|A|INPUT|CANVAS)$/);
+      expect(f.ring, `${f.id} shows a focus ring`).toBe(true);
+      seen.add(f.id);
+    }
+    for (const id of [
+      'play-today',
+      'nav-archive',
+      'nav-explore',
+      'nav-collection',
+      'nav-stats',
+      'nav-settings',
+    ])
+      expect([...seen]).toContain(id);
+    // activate by keyboard: open Settings and flip a switch with the space bar
+    await page.getByTestId('nav-settings').focus();
+    await page.keyboard.press('Enter');
+    await page.getByTestId('setting-sound').focus();
+    await page.keyboard.press('Space');
+    await expect(page.getByTestId('setting-sound')).toHaveAttribute('aria-checked', 'false');
+    // the world canvas takes focus and pans with the arrow keys
+    await page.goto(playUrl());
+    await waitForPuzzle(page);
+    await page.getByTestId('world').focus();
+    await page.getByRole('button', { name: 'Zoom in' }).click();
+    await page.waitForTimeout(500);
+    await page.getByTestId('world').focus();
+    const cam = () =>
+      page.evaluate(
+        () => (window as unknown as { __hwTest: { camera(): { tx: number } } }).__hwTest.camera().tx,
+      );
+    const before = await cam();
+    await page.keyboard.press('ArrowRight');
+    await expect.poll(cam).not.toBe(before);
   });
 });
 

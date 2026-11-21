@@ -34,7 +34,10 @@ for (const f of files) {
   const counted = precached.size ? precached.has(rel) : !rel.startsWith('packs/sample-png/');
   if (counted) precacheBytes += statSync(f).size;
 }
-const hookLeaks = files.filter((f) => f.endsWith('.js') && readFileSync(f, 'utf8').includes('__hwTest'));
+// the E2E hook and the answers bench must never ship to players
+const hookLeaks = files.filter(
+  (f) => f.endsWith('.js') && /__hwTest|Engine bench|Golden check/.test(readFileSync(f, 'utf8')),
+);
 
 const jsKb = initialGz / 1024;
 const mb = precacheBytes / 1024 / 1024;

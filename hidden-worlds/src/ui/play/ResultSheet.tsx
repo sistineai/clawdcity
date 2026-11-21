@@ -76,7 +76,7 @@ export function ResultSheet({ info, onClose }: { info: ResultInfo; onClose: () =
           <>
             <SpriteIcon spriteId={def.id} color={null} size={44} />
             <span>
-              <b>{def.name}</b> · {S.resultResident.toLowerCase()} found
+              <b>{def.name}</b> · {S.residentFoundLine}
             </span>
           </>
         ) : (

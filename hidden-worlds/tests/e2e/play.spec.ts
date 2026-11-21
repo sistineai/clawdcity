@@ -25,7 +25,8 @@ test.describe('play', () => {
     for (let i = 0; i < 3; i++) await page.getByTestId('coach-next').click();
     await expect(page.getByTestId('coach')).toHaveCount(0);
     await playThrough(page, { resident: true });
-    await expect(page.getByTestId('result')).toContainText('0');
+    await expect(page.getByTestId('result-time')).toHaveText(/^\d+:\d\d$/);
+    await expect(page.getByRole('img', { name: /of 3 stars/ })).toBeVisible();
     const events = await page.evaluate(() =>
       (window as unknown as { __hwTest: { events(): { event: string }[] } }).__hwTest
         .events()
@@ -169,7 +170,21 @@ test.describe('play', () => {
     await waitForPuzzle(page);
     const hint = page.getByTestId('hint');
     await expect(hint).toHaveText(/Hint/);
+    const cam = () =>
+      page.evaluate(() =>
+        (
+          window as unknown as { __hwTest: { camera(): { s: number; tx: number; ty: number } } }
+        ).__hwTest.camera(),
+      );
+    const before = await cam();
     await hint.click();
+    // the camera moves to the ring
+    await expect
+      .poll(async () => {
+        const c = await cam();
+        return Math.abs(c.tx - before.tx) + Math.abs(c.ty - before.ty) + Math.abs(c.s - before.s);
+      })
+      .toBeGreaterThan(1);
     await expect(hint).toHaveText(/1 free hint per puzzle/);
     const st = await page.evaluate(() =>
       (window as unknown as { __hwTest: { state(): { hints: number } } }).__hwTest.state(),
@@ -219,6 +234,38 @@ test.describe('play', () => {
     expect(after.elapsedMs).toBeGreaterThanOrEqual(2000);
     await expect(page.getByTestId('chip').filter({ has: page.locator('.chip-tick') })).toHaveCount(2);
     await expect(page.getByTestId('hint')).toHaveText(/1 free hint per puzzle/);
+  });
+
+  test('DAILY-6: the timer pauses while the page is hidden', async ({ page }) => {
+    await setClock(page);
+    await seed(page, doc());
+    await page.goto(playUrl());
+    await waitForPuzzle(page);
+    const elapsed = () =>
+      page.evaluate(
+        () =>
+          (window as unknown as { __hwTest: { state(): { elapsedMs: number } } }).__hwTest.state().elapsedMs,
+      );
+    const setHidden = (hidden: boolean) =>
+      page.evaluate((h) => {
+        Object.defineProperty(document, 'hidden', { value: h, configurable: true });
+        Object.defineProperty(document, 'visibilityState', {
+          value: h ? 'hidden' : 'visible',
+          configurable: true,
+        });
+        document.dispatchEvent(new Event('visibilitychange'));
+      }, hidden);
+    await page.waitForTimeout(1200);
+    await setHidden(true);
+    const atHide = await elapsed();
+    await page.waitForTimeout(3500);
+    await setHidden(false);
+    await page.waitForTimeout(300);
+    await setHidden(true);
+    const after = await elapsed();
+    // about 0.3 s ran while visible; the 3.5 s hidden did not count
+    expect(after - atHide).toBeLessThan(1500);
+    expect(atHide).toBeGreaterThanOrEqual(1000);
   });
 
   test('PACK-A2: a full play-through with ?pack=sample-png', async ({ page }) => {

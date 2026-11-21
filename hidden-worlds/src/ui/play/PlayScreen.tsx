@@ -7,6 +7,7 @@ import { buildIdMap, findNear, generate, indexPack, type PuzzleSpec } from '../.
 import { now } from '../../game/clock';
 import { formatTime, puzzleNumber, todayKey } from '../../game/dates';
 import { hintRing, shouldLock } from '../../game/hint';
+import { premium } from '../../game/gates';
 import { completePuzzle, recordResident, saveActive, startPuzzle } from '../../game/progress';
 import { difficultyFor, refKey, seedFor, worldFor, type PuzzleRef } from '../../game/puzzles';
 import { distinctResidents, unlockedWorlds } from '../../game/residents';
@@ -380,12 +381,13 @@ export function PlayScreen({ puzzle: puzzleProp }: PlayProps) {
     ctl.current?.setTapHandler(onTap);
   }, [onTap, ready]);
 
-  const freeLeft = active ? active.hints < PLAY.freeHints : false;
+  const freeLeft = active ? active.hints < PLAY.freeHints || premium() : false;
   const onHint = useCallback(async () => {
     const a = activeRef.current;
     if (!a || !spec || doneRef.current) return;
-    let kind: 'free' | 'rewarded' = 'free';
-    if (a.hints >= PLAY.freeHints) {
+    let kind: 'free' | 'rewarded' | 'premium' = 'free';
+    if (a.hints >= PLAY.freeHints && premium()) kind = 'premium';
+    else if (a.hints >= PLAY.freeHints) {
       const ads = getAds();
       if (!ads.isRewardedAvailable()) {
         go('premium?source=hints');

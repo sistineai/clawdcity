@@ -80,7 +80,7 @@ export const PLAY = {
   /** Forgiving tap radius in screen pixels; converted to world pixels at the current zoom. */
   tapRadiusScreenPx: 22,
   tapRadiusMinWorld: 10,
-  tapRadiusMaxWorld: 46,
+  tapRadiusMaxWorld: 90,
   lockoutMisses: 3,
   lockoutWindowMs: 2000,
   lockoutMs: 3000,

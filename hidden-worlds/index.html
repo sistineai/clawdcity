@@ -64,9 +64,13 @@
   </head>
   <body>
     <div id="root">
-      <div id="boot" role="status"><i aria-hidden="true"></i><span>Opening the field guide…</span></div>
+      <div id="boot" role="status">
+        <img src="icons/favicon.svg" width="72" height="72" alt="" /><i aria-hidden="true"></i
+        ><span>Opening the field guide…</span>
+      </div>
     </div>
     <noscript>This game needs JavaScript to run.</noscript>
-    <script type="module" src="./src/main.tsx"></script>
+    <!-- async: never hold the first paint of the loading state for the script (WebKit does otherwise) -->
+    <script type="module" async src="./src/main.tsx"></script>
   </body>
 </html>

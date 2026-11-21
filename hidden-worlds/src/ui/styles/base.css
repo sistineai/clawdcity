@@ -286,14 +286,8 @@ h3 {
   font-size: 12px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
-  }
-}
+/* Reduced motion: <App> sets data-motion from the setting, which follows the system by
+   default; an explicit "Off" in Settings wins over the system preference. */
 :root[data-motion='reduce'] *,
 :root[data-motion='reduce'] *::before,
 :root[data-motion='reduce'] *::after {

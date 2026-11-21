@@ -30,10 +30,14 @@ describe('colour-blind palette', () => {
     const g = simulate('#00ff00', 'deuteranopia');
     expect(Math.abs(r[0] - g[0]) + Math.abs(r[2] - g[2])).toBeLessThan(0.6);
   });
-  it('never changes placement: the palette is not an engine input', () => {
+  it('never changes placement: specs carry colour names, never display hex values', () => {
     const pack = syntheticPack();
-    expect(generate({ seed: 'cb', difficulty: 3, worldId: 'meadow', pack })).toEqual(
-      generate({ seed: 'cb', difficulty: 3, worldId: 'meadow', pack }),
-    );
+    const spec = generate({ seed: 'cb', difficulty: 3, worldId: 'meadow', pack });
+    for (const sp of spec.sprites.filter((x) => x.role === 'target' || x.role === 'decoy')) {
+      expect(pack.colors).toContain(sp.color);
+      expect(Object.values(COLORS_CB)).not.toContain(sp.color);
+    }
+    // the logic layer has no way to see the palette (also enforced by the purity test)
+    expect(JSON.stringify(spec)).not.toMatch(new RegExp(Object.values(COLORS_CB).join('|'), 'i'));
   });
 });

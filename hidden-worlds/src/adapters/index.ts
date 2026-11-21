@@ -4,7 +4,7 @@ import {
   consoleAnalytics,
   memoryAnalytics,
   noopAnalytics,
-  posthogAnalytics,
+  lazyPosthog,
   type Analytics,
   type MemoryAnalytics,
   type Props,
@@ -34,7 +34,7 @@ export function getAnalytics(): Analytics {
   if (!analytics) {
     const key = str('VITE_POSTHOG_KEY');
     if (__E2E__) analytics = memoryAnalytics();
-    else if (key) analytics = posthogAnalytics(key, str('VITE_POSTHOG_HOST') || 'https://us.i.posthog.com');
+    else if (key) analytics = lazyPosthog(key, str('VITE_POSTHOG_HOST') || 'https://us.i.posthog.com');
     else if (env.DEV === true && env.MODE !== 'test') analytics = consoleAnalytics();
     else analytics = noopAnalytics();
   }

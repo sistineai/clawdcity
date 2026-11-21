@@ -1,6 +1,6 @@
 // E2E-15 / ENG-A3: the same golden hashes come out of every browser engine.
 import { readFileSync } from 'node:fs';
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 const golden = JSON.parse(readFileSync('tests/golden/golden.json', 'utf8'));
 

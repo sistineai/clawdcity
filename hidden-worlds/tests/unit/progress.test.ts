@@ -39,6 +39,33 @@ describe('META-1 streak', () => {
     expect(extendStreak({ current: 3, best: 3, last: '2028-02-28' }, '2028-02-29').current).toBe(4);
     expect(extendStreak({ current: 3, best: 3, last: '2026-12-31' }, '2027-01-01').current).toBe(4);
   });
+  it('DAILY-7: a day finished after the next one still joins the run', () => {
+    // D started and left open; D+1 completed; then D finished after midnight; then D+2
+    let s = extendStreak({ current: 0, best: 2, last: null }, '2026-12-04');
+    expect(s).toEqual({ current: 1, best: 2, last: '2026-12-04' });
+    const done = new Set(['2026-12-01', '2026-12-02']);
+    s = extendStreak(s, '2026-12-03', (k) => done.has(k));
+    expect(s).toEqual({ current: 4, best: 4, last: '2026-12-04' });
+    s = extendStreak(s, '2026-12-05');
+    expect(s).toEqual({ current: 5, best: 5, last: '2026-12-05' });
+    // an older day that does not touch the run changes nothing
+    expect(extendStreak(s, '2026-11-20')).toBe(s);
+  });
+  it('completePuzzle keeps the streak when days finish out of order', () => {
+    let d = freshDoc(0, 'device-12345678');
+    const D = { mode: 'daily' as const, date: '2026-12-07' };
+    const D1 = { mode: 'daily' as const, date: '2026-12-08' };
+    const D2 = { mode: 'daily' as const, date: '2026-12-09' };
+    const sD = startPuzzle(d, D, D.date, 1);
+    d = sD.doc;
+    const s1 = startPuzzle(d, D1, D1.date, 2);
+    d = completePuzzle(s1.doc, D1, { timeMs: 1, misses: 0, hints: 0, resident: null }, s1.active, 3).doc;
+    d = completePuzzle(d, D, { timeMs: 1, misses: 0, hints: 0, resident: null }, sD.active, 4).doc;
+    expect(d.streak).toEqual({ current: 2, best: 2, last: D1.date });
+    const s2 = startPuzzle(d, D2, D2.date, 5);
+    d = completePuzzle(s2.doc, D2, { timeMs: 1, misses: 0, hints: 0, resident: null }, s2.active, 6).doc;
+    expect(d.streak).toEqual({ current: 3, best: 3, last: D2.date });
+  });
   it('displays 0 when the last completion is older than yesterday', () => {
     const s = { current: 5, best: 9, last: '2026-12-10' };
     expect(displayedStreak(s, '2026-12-10')).toBe(5);

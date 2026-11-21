@@ -10,10 +10,27 @@ import { startPwa } from './ui/pwa';
 
 startPwa();
 
+/** Wait for the (non-blocking) app stylesheet, but never more than a few seconds. */
+function cssReady(): Promise<void> {
+  const link = document.querySelector<HTMLLinkElement>('link[data-app-css]');
+  if (!link || (link.media === 'all' && link.sheet)) return Promise.resolve();
+  return new Promise((resolve) => {
+    const done = () => {
+      link.media = 'all';
+      resolve();
+    };
+    link.addEventListener('load', done, { once: true });
+    link.addEventListener('error', done, { once: true });
+    setTimeout(done, 4000);
+  });
+}
+
 const el = document.getElementById('root');
 if (el)
-  createRoot(el).render(
-    <StrictMode>
-      <App />
-    </StrictMode>,
+  void cssReady().then(() =>
+    createRoot(el).render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    ),
   );

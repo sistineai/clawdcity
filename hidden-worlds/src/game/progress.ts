@@ -110,7 +110,11 @@ export function completePuzzle(
     };
     d.daily = { ...d.daily, [ref.date]: result };
     if (!late) {
-      const s = extendStreak(d.streak, ref.date);
+      const onTime = (k: string) => {
+        const r = d.daily[k];
+        return !!r && !r.late;
+      };
+      const s = extendStreak(d.streak, ref.date, onTime);
       streakChanged = s !== d.streak;
       d.streak = s;
     }

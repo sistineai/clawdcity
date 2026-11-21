@@ -37,63 +37,42 @@ export const memoryAnalytics = (): MemoryAnalytics => {
 };
 
 /**
- * PostHog over its public HTTP capture API (batch endpoint), sent only when VITE_POSTHOG_KEY is
- * set. Anonymous by construction: no autocapture, no session recording, no cookies, and the only
- * identifier is the random device id. Nothing is sent before the player's first interaction.
+ * PostHog, loaded lazily (ADPT-1): nothing is fetched, imported or sent until the player's first
+ * interaction. Until then events wait in memory; afterwards the client in ./posthog sends them.
  */
-export function posthogAnalytics(key: string, host: string): Analytics {
-  const queue: { event: string; properties: Props; timestamp: string }[] = [];
-  let distinctId = 'anonymous';
-  let started = false;
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  const start = () => {
-    started = true;
-    schedule();
+export function lazyPosthog(key: string, host: string): Analytics {
+  let real: Analytics | null = null;
+  let id: string | null = null;
+  const buffer: { event: string; props: Props }[] = [];
+  const load = () => {
+    import('./posthog')
+      .then((m) => {
+        real = m.posthogAnalytics(key, host, true);
+        if (id) real.identify(id);
+        for (const e of buffer.splice(0)) real.track(e.event, e.props);
+      })
+      .catch(() => {});
   };
   if (typeof window !== 'undefined') {
-    for (const ev of ['pointerdown', 'keydown'] as const)
-      window.addEventListener(ev, start, { once: true, passive: true });
-    window.addEventListener('pagehide', () => void send(true));
+    let started = false;
+    const start = () => {
+      if (started) return;
+      started = true;
+      load();
+    };
+    window.addEventListener('pointerdown', start, { once: true, passive: true });
+    window.addEventListener('keydown', start, { once: true, passive: true });
   }
-  const schedule = () => {
-    if (!started || timer || !queue.length) return;
-    timer = setTimeout(() => {
-      timer = null;
-      void send(false);
-    }, 3000);
-  };
-  const send = async (beacon: boolean) => {
-    if (!started || !queue.length) return;
-    const batch = queue.splice(0, queue.length).map((e) => ({
-      ...e,
-      distinct_id: distinctId,
-      properties: { ...e.properties, $process_person_profile: false },
-    }));
-    const body = JSON.stringify({ api_key: key, batch });
-    const url = host.replace(/\/$/, '') + '/batch/';
-    try {
-      if (beacon && navigator.sendBeacon)
-        navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
-      else
-        await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body,
-          keepalive: true,
-        });
-    } catch {
-      // analytics must never affect play
-    }
-  };
   return {
     name: 'posthog',
-    track(event, properties) {
-      queue.push({ event, properties, timestamp: new Date().toISOString() });
-      schedule();
+    track(event, props) {
+      if (real) real.track(event, props);
+      else buffer.push({ event, props });
     },
-    identify(id) {
-      distinctId = id;
+    identify(deviceId) {
+      id = deviceId;
+      real?.identify(deviceId);
     },
-    flush: () => send(false),
+    flush: () => real?.flush() ?? Promise.resolve(),
   };
 }

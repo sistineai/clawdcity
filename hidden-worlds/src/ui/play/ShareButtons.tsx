@@ -1,5 +1,5 @@
 // The result sheet's share row: text, picture, and a challenge link (daily puzzles).
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { track } from '../../adapters';
 import { APP_SLUG } from '../../config';
 import { challengeUrl } from '../../game/challenge';
@@ -56,13 +56,15 @@ export function ShareButtons({ info }: { info: ResultInfo }) {
     track('share', { kind: 'challenge', method: m });
     announce(m);
   };
-  const onImage = async () => {
-    if (!pack || busy) return;
-    setBusy(true);
-    try {
+  // Render the picture while the sheet is open, so a tap can call the Web Share API at once,
+  // while the browser still counts it as a user gesture (Safari drops it after slow work).
+  const blobRef = useRef<Promise<Blob | null> | null>(null);
+  const renderCard = () => {
+    blobRef.current ??= (async () => {
+      if (!pack) return null;
       const { renderShareCard } = await import('../share/image');
       const title = p.mode === 'daily' ? S.puzzleNo(puzzleNumber(p.date)) : S.levelN(p.level);
-      const blob = await renderShareCard(info.spec, pack, {
+      return renderShareCard(info.spec, pack, {
         title,
         worldName,
         stars: info.stars,
@@ -71,13 +73,27 @@ export function ShareButtons({ info }: { info: ResultInfo }) {
           info.hints ? S.hintsN(info.hints) : S.noHints,
         ],
       });
-      const m = blob
-        ? await shareImage(
-            blob,
-            `${APP_SLUG}-${p.mode === 'daily' ? p.date : `${p.world}-${p.level}`}.png`,
-            text,
-          )
-        : 'failed';
+    })().catch(() => null);
+    return blobRef.current;
+  };
+  const [ready, setReady] = useState<Blob | null>(null);
+  useEffect(() => {
+    let live = true;
+    const t = setTimeout(() => void renderCard().then((b) => live && setReady(b)), 250);
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
+    // render once per result
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [info]);
+  const filename = `${APP_SLUG}-${p.mode === 'daily' ? p.date : `${p.world}-${p.level}`}.png`;
+  const onImage = async () => {
+    if (!pack || busy) return;
+    setBusy(true);
+    try {
+      const blob = ready ?? (await renderCard());
+      const m = blob ? await shareImage(blob, filename, text) : 'failed';
       track('share', { kind: 'image', method: m });
       announce(m);
     } finally {

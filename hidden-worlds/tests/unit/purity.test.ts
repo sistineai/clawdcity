@@ -1,11 +1,16 @@
 // ENG-A6: nothing under src/engine/logic may reach outside it (except the pure config
 // module and type-only imports) or use the DOM, canvas, clocks or banned Math functions.
-import { readdirSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const dir = 'src/engine/logic';
-const files = readdirSync(dir).filter((f) => f.endsWith('.ts'));
+const walk = (d: string): string[] =>
+  readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : [join(d, f)]));
+// every file under logic, including subfolders
+const files = walk(dir)
+  .filter((f) => f.endsWith('.ts'))
+  .map((f) => f.slice(dir.length + 1));
 const banned = [
   /\bdocument\b/,
   /\bwindow\b/,
@@ -28,11 +33,14 @@ export function purityProblems(file: string, src: string): string[] {
     const typeOnly = Boolean(m[2]);
     const from = m[3]!;
     if (typeOnly) continue;
-    if (from.startsWith('./') && !from.slice(2).includes('/')) continue;
+    if (from.startsWith('./')) continue;
     if (from === '../../config') continue;
     out.push(`${file}: imports "${from}"`);
   }
   for (const m of code.matchAll(/\bimport\s*\(/g)) out.push(`${file}: dynamic import at ${m.index}`);
+  for (const m of code.matchAll(/^\s*import\s+['"]([^'"]+)['"]/gm))
+    out.push(`${file}: side-effect import "${m[1]}"`);
+  if (/\b(COLORS|COLORS_CB|Palette|palette)\b/.test(code)) out.push(`${file}: refers to display colours`);
   for (const re of banned) if (re.test(code)) out.push(`${file}: uses ${re}`);
   return out;
 }
@@ -50,6 +58,8 @@ describe('engine logic purity', () => {
     expect(purityProblems('x.ts', 'document.body;').length).toBe(1);
     expect(purityProblems('x.ts', "import type { T } from '../pack/types';").length).toBe(0);
     expect(purityProblems('x.ts', "import { ENGINE } from '../../config';").length).toBe(0);
+    expect(purityProblems('x.ts', "import './polyfill';").length).toBe(1);
+    expect(purityProblems('x.ts', 'const p = COLORS_CB.red;').length).toBe(1);
   });
   it('config.ts, the one outside module logic imports, has no imports of its own', () => {
     expect(readFileSync('src/config.ts', 'utf8')).not.toMatch(/^\s*import\s/m);

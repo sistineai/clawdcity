@@ -1,6 +1,7 @@
 import { Component, lazy, Suspense, useEffect, type ErrorInfo, type ReactNode } from 'react';
-import { track } from '../adapters';
-import { loadPack } from '../engine/pack/load';
+import { setCommon, track } from '../adapters';
+import { loadPack, requestedPackId } from '../engine/pack/load';
+import { APP_VERSION } from '../config';
 import { now } from '../game/clock';
 import { isDateKey, puzzleNumber, todayKey } from '../game/dates';
 import { decodeChallenge } from '../game/challenge';
@@ -23,7 +24,11 @@ import { PlayScreen } from './play/PlayScreen';
 import { installBaseHook } from './play/testHook';
 import { go, useRoute } from './router';
 
-const Dev = lazy(() => import('./screens/Dev').then((m) => ({ default: m.Dev })));
+// Built only into dev and test bundles: the production build has no engine bench at all.
+const Dev =
+  import.meta.env.DEV || __E2E__
+    ? lazy(() => import('./screens/Dev').then((m) => ({ default: m.Dev })))
+    : null;
 
 if (__E2E__) installBaseHook(getDoc);
 
@@ -101,7 +106,8 @@ function Routes() {
   const doc = useApp((s) => s.doc);
   const [a, b, c, d] = route.parts;
   const today = todayKey(now());
-  if (a === 'dev')
+  // The engine bench draws every answer, so it exists only in dev and the test build.
+  if (a === 'dev' && Dev)
     return (
       <Suspense fallback={<p className="screen">{S.loading}</p>}>
         <Dev />
@@ -141,13 +147,15 @@ export function App() {
         track('error', { message: 'pack: ' + String(e).slice(0, 180) });
       },
     );
+    // ADPT-3: the requested pack id is known before the pack finishes loading
+    setCommon({ pack_id: requestedPackId() });
     const st = useApp.getState();
     const days = Math.floor((now() - st.doc.firstOpen) / 86400000);
     track('app_open', {
       first: st.first,
       days_since_first: days,
       standalone: typeof matchMedia !== 'undefined' && matchMedia('(display-mode: standalone)').matches,
-      version: '1',
+      version: APP_VERSION,
     });
     if (openChallenge()) return;
     // DAILY-5: first-time visitors go straight into today's puzzle

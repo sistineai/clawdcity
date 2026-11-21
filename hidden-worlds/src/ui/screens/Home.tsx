@@ -107,7 +107,7 @@ export function Home() {
           </div>
         </section>
 
-        <nav className="home-nav" aria-label="Sections">
+        <nav className="home-nav" aria-label={S.sectionsNav}>
           {NAV.map((x) => (
             <button
               key={x.to}

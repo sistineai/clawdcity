@@ -4,14 +4,42 @@ import { addDays } from './dates';
 export interface Streak {
   current: number;
   best: number;
-  /** Date key of the last on-time daily completion. */
+  /** Date key of the latest on-time daily completion. */
   last: string | null;
 }
 
-/** Completing today's daily on its own date. */
-export function extendStreak(s: Streak, date: string): Streak {
+/**
+ * Completing a daily on time for `date`. Normally `date` is today, after `last`. A puzzle started
+ * yesterday can be finished after today's (DAILY-7), so `date` may be before `last`: then it can
+ * only join the current run at its start, and `doneOnTime` lets the run grow further back through
+ * days already completed.
+ */
+export function extendStreak(
+  s: Streak,
+  date: string,
+  doneOnTime: (key: string) => boolean = () => false,
+): Streak {
   if (s.last === date) return s;
-  const current = s.last === addDays(date, -1) ? s.current + 1 : 1;
+  if (s.last && date < s.last) {
+    const runStart = addDays(s.last, -(s.current - 1));
+    if (date !== addDays(runStart, -1)) return s;
+    let current = s.current + 1;
+    let k = addDays(date, -1);
+    while (doneOnTime(k)) {
+      current++;
+      k = addDays(k, -1);
+    }
+    return { current, best: Math.max(s.best, current), last: s.last };
+  }
+  let current = s.last === addDays(date, -1) ? s.current + 1 : 1;
+  // a run can also be bridged by an earlier day finished out of order
+  if (current === 1) {
+    let k = addDays(date, -1);
+    while (doneOnTime(k)) {
+      current++;
+      k = addDays(k, -1);
+    }
+  }
   return { current, best: Math.max(s.best, current), last: date };
 }
 

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { memoryAnalytics, posthogAnalytics } from '../../src/adapters/analytics';
+import { memoryAnalytics } from '../../src/adapters/analytics';
+import { posthogAnalytics } from '../../src/adapters/posthog';
 import { noAds, noPurchases, noSync, noWaitlist } from '../../src/adapters/others';
 
 afterEach(() => {

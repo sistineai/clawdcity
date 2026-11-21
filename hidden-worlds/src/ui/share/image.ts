@@ -9,6 +9,7 @@ import { drawSpriteAt } from '../../engine/render/draw';
 import { COLORS } from '../../engine/render/palette';
 import { indexPack } from '../../engine/logic';
 import { starString } from '../../game/scoring';
+import { S } from '../../strings';
 
 export interface CardInfo {
   title: string;
@@ -116,6 +117,6 @@ export async function renderShareCard(
 
   ctx.fillStyle = '#f1f5ea';
   ctx.font = `700 38px ${BODY}`;
-  ctx.fillText('Can you find them all?', w / 2, h - 130);
+  ctx.fillText(S.shareCardTagline, w / 2, h - 130);
   return new Promise((resolve) => c.toBlob((b) => resolve(b), 'image/png'));
 }

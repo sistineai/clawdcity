@@ -57,7 +57,7 @@ export function Collection() {
                       />
                     </div>
                     <div className="guide-text">
-                      <p className="title guide-name">{got ? def?.name : '?????'}</p>
+                      <p className="title guide-name">{got ? def?.name : S.unknownName}</p>
                       <p className={`rarity rarity-${rarity}`}>{S.rarity[rarity]}</p>
                       {got ? (
                         <>

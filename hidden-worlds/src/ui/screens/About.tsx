@@ -12,7 +12,7 @@ export function About() {
       <p className="lede">{S.aboutWhat}</p>
       <section className="prose" aria-labelledby="art-h">
         <h2 id="art-h" className="eyebrow">
-          Art
+          {S.artTitle}
         </h2>
         <p data-testid="about-art">{S.aboutArt}</p>
         {pack && <p className="note">{pack.credits}</p>}
