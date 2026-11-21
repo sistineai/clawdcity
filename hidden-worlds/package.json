@@ -23,7 +23,8 @@
     "world:audit": "node --expose-gc --import tsx tools/world-audit.ts",
     "calendar": "tsx tools/calendar.ts",
     "golden": "tsx tools/golden.ts",
-    "verify": "tsx tools/verify.ts"
+    "verify": "tsx tools/verify.ts",
+    "render:samples": "tsx tools/render-samples.ts"
   },
   "dependencies": {
     "react": "^19.3.1",

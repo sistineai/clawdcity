@@ -36,3 +36,22 @@ select {
   font-weight: 800;
   text-transform: uppercase;
 }
+.dev {
+  padding: var(--s4);
+}
+.dev-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+  align-items: center;
+}
+.dev-canvas {
+  width: 100%;
+  height: auto;
+  border: var(--rule);
+}
+.dev pre {
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-size: 12px;
+}

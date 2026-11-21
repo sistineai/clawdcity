@@ -3,7 +3,7 @@
 ## Status
 - [x] M0 Scaffold and verify pipeline
 - [x] M1 Engine logic (synthetic masks: 300 puzzles, 0 forced, p95 ~60 ms)
-- [ ] M2 Packs and rendering
+- [x] M2 Packs and rendering (vector pack 67 sprites, sample-png, validator, golden in 3 engines)
 - [ ] M3 Play
 - [ ] M4 Daily, archive, Explore
 - [ ] M5 Progress and collection
@@ -14,3 +14,5 @@
 ## Notes
 - Project lives in `hidden-worlds/` inside the `clawdcity` repo.
 - Browsers: Chromium preinstalled at /opt/pw-browsers; Firefox and WebKit installed with `npx playwright install firefox webkit` plus `install-deps`.
+- Look at output: `npm run render:samples` writes PNGs to out/samples/<pack>/. `/#/dev` is the engine bench.
+- Golden: `npm run golden` regenerates tests/golden/golden.json (only with an ENGINE_VERSION bump).

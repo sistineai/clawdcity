@@ -1,0 +1,79 @@
+{
+  "engineVersion": 1,
+  "packId": "vector",
+  "packVersion": 1,
+  "entries": [
+    {
+      "seed": "daily-2026-12-01",
+      "difficulty": 2,
+      "worldId": "meadow",
+      "hash": "7d41c71c5f1d23d1"
+    },
+    {
+      "seed": "daily-2026-12-02",
+      "difficulty": 3,
+      "worldId": "harbour",
+      "hash": "4fd32af1d465186b"
+    },
+    {
+      "seed": "daily-2026-12-03",
+      "difficulty": 3,
+      "worldId": "market",
+      "hash": "e8b8f97a4e2f6256"
+    },
+    {
+      "seed": "daily-2026-12-05",
+      "difficulty": 4,
+      "worldId": "meadow",
+      "hash": "9bd454dbef57ad3e"
+    },
+    {
+      "seed": "daily-2026-12-06",
+      "difficulty": 5,
+      "worldId": "harbour",
+      "hash": "c66eeba81ff00fe8"
+    },
+    {
+      "seed": "daily-2026-12-07",
+      "difficulty": 1,
+      "worldId": "market",
+      "hash": "6188c715087722f2"
+    },
+    {
+      "seed": "explore-meadow-1",
+      "difficulty": 1,
+      "worldId": "meadow",
+      "hash": "d416f3869f18e9c0"
+    },
+    {
+      "seed": "explore-meadow-30",
+      "difficulty": 5,
+      "worldId": "meadow",
+      "hash": "eb9ca8120c39b6d6"
+    },
+    {
+      "seed": "explore-harbour-12",
+      "difficulty": 3,
+      "worldId": "harbour",
+      "hash": "9eecf28dfa6ed1e6"
+    },
+    {
+      "seed": "explore-harbour-27",
+      "difficulty": 5,
+      "worldId": "harbour",
+      "hash": "9481082e669b7200"
+    },
+    {
+      "seed": "explore-market-7",
+      "difficulty": 2,
+      "worldId": "market",
+      "hash": "9f4d00347377827f"
+    },
+    {
+      "seed": "explore-market-22",
+      "difficulty": 4,
+      "worldId": "market",
+      "hash": "bd652aee50694f43"
+    }
+  ]
+}

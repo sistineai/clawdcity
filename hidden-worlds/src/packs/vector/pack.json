@@ -1,0 +1,1342 @@
+{
+  "id": "vector",
+  "version": 1,
+  "name": "Placeholder vector art",
+  "credits": "Placeholder vector art drawn in code for the v1 test. Commissioned art will replace it.",
+  "art": "vector",
+  "pixelScale": 1,
+  "colors": ["red", "orange", "yellow", "green", "teal", "blue", "purple", "pink"],
+  "sprites": [
+    {
+      "id": "key",
+      "kind": "small",
+      "name": "Key",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 0,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "star",
+      "kind": "small",
+      "name": "Star",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": true,
+      "mask": {
+        "offset": 1152,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "heart",
+      "kind": "small",
+      "name": "Heart",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 2304,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "fish",
+      "kind": "small",
+      "name": "Fish",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 3456,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "mushroom",
+      "kind": "small",
+      "name": "Mushroom",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 4608,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "leaf",
+      "kind": "small",
+      "name": "Leaf",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 5760,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "moon",
+      "kind": "small",
+      "name": "Moon",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": true,
+      "mask": {
+        "offset": 6912,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "cup",
+      "kind": "small",
+      "name": "Cup",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 8064,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "hat",
+      "kind": "small",
+      "name": "Top hat",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 9216,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "boot",
+      "kind": "small",
+      "name": "Boot",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 10368,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "bell",
+      "kind": "small",
+      "name": "Bell",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 11520,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "kite",
+      "kind": "small",
+      "name": "Kite",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": true,
+      "mask": {
+        "offset": 12672,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "umbrella",
+      "kind": "small",
+      "name": "Umbrella",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 13824,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "apple",
+      "kind": "small",
+      "name": "Apple",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 14976,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "carrot",
+      "kind": "small",
+      "name": "Carrot",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 16128,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "candle",
+      "kind": "small",
+      "name": "Candle",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 17280,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "book",
+      "kind": "small",
+      "name": "Book",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 18432,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "lantern",
+      "kind": "small",
+      "name": "Lantern",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 19584,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "balloon",
+      "kind": "small",
+      "name": "Balloon",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": true,
+      "mask": {
+        "offset": 20736,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "bottle",
+      "kind": "small",
+      "name": "Bottle",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 21888,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "flag",
+      "kind": "small",
+      "name": "Flag",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 23040,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "anchor",
+      "kind": "small",
+      "name": "Anchor",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 24192,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "acorn",
+      "kind": "small",
+      "name": "Acorn",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 25344,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "feather",
+      "kind": "small",
+      "name": "Feather",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": true,
+      "mask": {
+        "offset": 26496,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "shell",
+      "kind": "small",
+      "name": "Shell",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 27648,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "envelope",
+      "kind": "small",
+      "name": "Envelope",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 28800,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "crown",
+      "kind": "small",
+      "name": "Crown",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 29952,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "tulip",
+      "kind": "small",
+      "name": "Tulip",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 31104,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "bone",
+      "kind": "small",
+      "name": "Bone",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 32256,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "pumpkin",
+      "kind": "small",
+      "name": "Pumpkin",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 33408,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "button",
+      "kind": "small",
+      "name": "Button",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 34560,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "gem",
+      "kind": "small",
+      "name": "Gem",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 35712,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "boat",
+      "kind": "small",
+      "name": "Sailboat",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 168],
+      "baseSize": 65,
+      "colored": true,
+      "allowRotate": true,
+      "allowFlip": true,
+      "skyOk": false,
+      "mask": {
+        "offset": 36864,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "tree",
+      "kind": "occluder",
+      "name": "Tree",
+      "w": 512,
+      "h": 512,
+      "anchor": [256, 475],
+      "baseSize": 280,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "tints": ["#4f9d4a", "#3f8f5a", "#6aaa3f", "#e0903a"],
+      "weight": 4,
+      "mask": {
+        "offset": 38016,
+        "w": 256,
+        "h": 256
+      }
+    },
+    {
+      "id": "pine",
+      "kind": "occluder",
+      "name": "Pine",
+      "w": 512,
+      "h": 512,
+      "anchor": [256, 475],
+      "baseSize": 291,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "tints": ["#2f7d5b", "#3b8a52", "#2b6f6a"],
+      "weight": 3,
+      "mask": {
+        "offset": 46208,
+        "w": 256,
+        "h": 256
+      }
+    },
+    {
+      "id": "bush",
+      "kind": "occluder",
+      "name": "Bush",
+      "w": 512,
+      "h": 512,
+      "anchor": [256, 457],
+      "baseSize": 157,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "tints": ["#6bb04f", "#58a35f", "#86b84a"],
+      "weight": 4,
+      "mask": {
+        "offset": 54400,
+        "w": 256,
+        "h": 256
+      }
+    },
+    {
+      "id": "rock",
+      "kind": "occluder",
+      "name": "Rock",
+      "w": 512,
+      "h": 512,
+      "anchor": [256, 393],
+      "baseSize": 146,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "tints": ["#a9b0a6", "#b9b2a1", "#98a3a8"],
+      "weight": 3,
+      "mask": {
+        "offset": 62592,
+        "w": 256,
+        "h": 256
+      }
+    },
+    {
+      "id": "cottage",
+      "kind": "occluder",
+      "name": "Cottage",
+      "w": 512,
+      "h": 512,
+      "anchor": [256, 439],
+      "baseSize": 325,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "tints": ["#c0563f", "#3f6aa8", "#8a5a9c", "#d08a2e"],
+      "weight": 1.5,
+      "mask": {
+        "offset": 70784,
+        "w": 256,
+        "h": 256
+      }
+    },
+    {
+      "id": "tent",
+      "kind": "occluder",
+      "name": "Tent",
+      "w": 512,
+      "h": 512,
+      "anchor": [256, 421],
+      "baseSize": 224,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "tints": ["#f08a24", "#3a6fd8", "#dd4b39", "#1fa39a"],
+      "weight": 1,
+      "mask": {
+        "offset": 78976,
+        "w": 256,
+        "h": 256
+      }
+    },
+    {
+      "id": "haystack",
+      "kind": "occluder",
+      "name": "Haystack",
+      "w": 512,
+      "h": 512,
+      "anchor": [256, 421],
+      "baseSize": 202,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "tints": ["#e8c95a", "#dcb848"],
+      "weight": 1.5,
+      "mask": {
+        "offset": 87168,
+        "w": 256,
+        "h": 256
+      }
+    },
+    {
+      "id": "fence",
+      "kind": "occluder",
+      "name": "Fence",
+      "w": 512,
+      "h": 512,
+      "anchor": [256, 402],
+      "baseSize": 258,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "tints": ["#b98f62", "#c9a77a"],
+      "weight": 1.5,
+      "mask": {
+        "offset": 95360,
+        "w": 256,
+        "h": 256
+      }
+    },
+    {
+      "id": "log",
+      "kind": "occluder",
+      "name": "Log",
+      "w": 512,
+      "h": 512,
+      "anchor": [256, 320],
+      "baseSize": 190,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "tints": ["#9a714b", "#8a6444"],
+      "weight": 1.5,
+      "mask": {
+        "offset": 103552,
+        "w": 256,
+        "h": 256
+      }
+    },
+    {
+      "id": "lighthouse",
+      "kind": "occluder",
+      "name": "Lighthouse",
+      "w": 512,
+      "h": 512,
+      "anchor": [256, 466],
+      "baseSize": 403,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "tints": ["#f3efe6"],
+      "weight": 0.5,
+      "mask": {
+        "offset": 111744,
+        "w": 256,
+        "h": 256
+      }
+    },
+    {
+      "id": "crates",
+      "kind": "occluder",
+      "name": "Crates",
+      "w": 512,
+      "h": 512,
+      "anchor": [256, 457],
+      "baseSize": 179,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "tints": ["#c9a26b", "#b88f5a", "#a8804e"],
+      "weight": 3,
+      "mask": {
+        "offset": 119936,
+        "w": 256,
+        "h": 256
+      }
+    },
+    {
+      "id": "dinghy",
+      "kind": "occluder",
+      "name": "Rowing boat",
+      "w": 512,
+      "h": 512,
+      "anchor": [256, 384],
+      "baseSize": 258,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "tints": ["#3a6fd8", "#dd4b39", "#1fa39a", "#f3e6c8"],
+      "weight": 2,
+      "mask": {
+        "offset": 128128,
+        "w": 256,
+        "h": 256
+      }
+    },
+    {
+      "id": "netrack",
+      "kind": "occluder",
+      "name": "Fishing nets",
+      "w": 512,
+      "h": 512,
+      "anchor": [256, 457],
+      "baseSize": 246,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "tints": ["#7d9a8a", "#a0866a", "#8aa0a8"],
+      "weight": 2,
+      "mask": {
+        "offset": 136320,
+        "w": 256,
+        "h": 256
+      }
+    },
+    {
+      "id": "boathouse",
+      "kind": "occluder",
+      "name": "Boathouse",
+      "w": 512,
+      "h": 512,
+      "anchor": [256, 457],
+      "baseSize": 336,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "tints": ["#6d8ea8", "#b04a3a", "#d9c59a", "#4f8a7a"],
+      "weight": 1.5,
+      "mask": {
+        "offset": 144512,
+        "w": 256,
+        "h": 256
+      }
+    },
+    {
+      "id": "pilings",
+      "kind": "occluder",
+      "name": "Pilings",
+      "w": 512,
+      "h": 512,
+      "anchor": [256, 457],
+      "baseSize": 202,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "tints": ["#8a6444", "#9a714b"],
+      "weight": 2,
+      "mask": {
+        "offset": 152704,
+        "w": 256,
+        "h": 256
+      }
+    },
+    {
+      "id": "stall",
+      "kind": "occluder",
+      "name": "Market stall",
+      "w": 512,
+      "h": 512,
+      "anchor": [256, 457],
+      "baseSize": 302,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "tints": ["#dd4b39", "#1fa39a", "#f08a24", "#3a6fd8"],
+      "weight": 3,
+      "mask": {
+        "offset": 160896,
+        "w": 256,
+        "h": 256
+      }
+    },
+    {
+      "id": "barrels",
+      "kind": "occluder",
+      "name": "Barrels",
+      "w": 512,
+      "h": 512,
+      "anchor": [256, 457],
+      "baseSize": 185,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "tints": ["#9a6a3e", "#8a5a34", "#a8784a"],
+      "weight": 3,
+      "mask": {
+        "offset": 169088,
+        "w": 256,
+        "h": 256
+      }
+    },
+    {
+      "id": "cart",
+      "kind": "occluder",
+      "name": "Cart",
+      "w": 512,
+      "h": 512,
+      "anchor": [256, 457],
+      "baseSize": 258,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "tints": ["#3a6fd8", "#c0563f", "#4f8a7a"],
+      "weight": 2,
+      "mask": {
+        "offset": 177280,
+        "w": 256,
+        "h": 256
+      }
+    },
+    {
+      "id": "well",
+      "kind": "occluder",
+      "name": "Well",
+      "w": 512,
+      "h": 512,
+      "anchor": [256, 457],
+      "baseSize": 258,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "tints": ["#c0563f", "#3f6aa8", "#4f8a7a"],
+      "weight": 1.5,
+      "mask": {
+        "offset": 185472,
+        "w": 256,
+        "h": 256
+      }
+    },
+    {
+      "id": "kiosk",
+      "kind": "occluder",
+      "name": "Kiosk",
+      "w": 512,
+      "h": 512,
+      "anchor": [256, 457],
+      "baseSize": 314,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "tints": ["#1fa39a", "#dd4b39", "#f08a24"],
+      "weight": 1,
+      "mask": {
+        "offset": 193664,
+        "w": 256,
+        "h": 256
+      }
+    },
+    {
+      "id": "cloud",
+      "kind": "sky",
+      "name": "Cloud",
+      "w": 512,
+      "h": 512,
+      "anchor": [256, 256],
+      "baseSize": 291,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "tints": ["#ffffff", "#f4f8fb"],
+      "mask": {
+        "offset": 201856,
+        "w": 256,
+        "h": 256
+      }
+    },
+    {
+      "id": "duskcloud",
+      "kind": "sky",
+      "name": "Cloud",
+      "w": 512,
+      "h": 512,
+      "anchor": [256, 256],
+      "baseSize": 291,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "tints": ["#f3b49a", "#d98f8a", "#8f86b4"],
+      "mask": {
+        "offset": 210048,
+        "w": 256,
+        "h": 256
+      }
+    },
+    {
+      "id": "mossy",
+      "kind": "resident",
+      "name": "Mossy",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 165],
+      "baseSize": 72,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "rarity": "common",
+      "description": "Sleeps under ferns. Collects buttons.",
+      "color": "#6aa84f",
+      "mask": {
+        "offset": 218240,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "bram",
+      "kind": "resident",
+      "name": "Bram",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 165],
+      "baseSize": 72,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "rarity": "common",
+      "description": "Keeps a tidy burrow and an untidy hat.",
+      "color": "#b07a52",
+      "mask": {
+        "offset": 219392,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "tuck",
+      "kind": "resident",
+      "name": "Tuck",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 165],
+      "baseSize": 72,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "rarity": "uncommon",
+      "description": "Wears a top hat to every picnic.",
+      "color": "#ef8e2f",
+      "mask": {
+        "offset": 220544,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "wren",
+      "kind": "resident",
+      "name": "Wren",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 165],
+      "baseSize": 72,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "rarity": "rare",
+      "description": "Hums to the bees. Seldom seen before noon.",
+      "color": "#8f5fd0",
+      "mask": {
+        "offset": 221696,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "odo",
+      "kind": "resident",
+      "name": "Odo",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 165],
+      "baseSize": 72,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "rarity": "common",
+      "description": "Counts the boats every morning, twice.",
+      "color": "#4f86d9",
+      "mask": {
+        "offset": 222848,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "fen",
+      "kind": "resident",
+      "name": "Fen",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 165],
+      "baseSize": 72,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "rarity": "common",
+      "description": "Listens to the tide through two long feelers.",
+      "color": "#22a79c",
+      "mask": {
+        "offset": 224000,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "marlo",
+      "kind": "resident",
+      "name": "Marlo",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 165],
+      "baseSize": 72,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "rarity": "uncommon",
+      "description": "Retired sailor. Still salutes the lighthouse.",
+      "color": "#5d7f99",
+      "mask": {
+        "offset": 225152,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "sol",
+      "kind": "resident",
+      "name": "Sol",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 165],
+      "baseSize": 72,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "rarity": "rare",
+      "description": "Arrives with the sunrise. Leaves no footprints.",
+      "color": "#f0c02e",
+      "mask": {
+        "offset": 226304,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "juno",
+      "kind": "resident",
+      "name": "Juno",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 165],
+      "baseSize": 72,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "rarity": "common",
+      "description": "Ties bows on everything that stands still.",
+      "color": "#ef7fa9",
+      "mask": {
+        "offset": 227456,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "pip",
+      "kind": "resident",
+      "name": "Pip",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 165],
+      "baseSize": 72,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "rarity": "common",
+      "description": "Big ears, bigger appetite. Loves the pie stall.",
+      "color": "#c9874a",
+      "mask": {
+        "offset": 228608,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "quill",
+      "kind": "resident",
+      "name": "Quill",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 165],
+      "baseSize": 72,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "rarity": "uncommon",
+      "description": "Writes the market gossip. Prickly about edits.",
+      "color": "#7f8b54",
+      "mask": {
+        "offset": 229760,
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "id": "nell",
+      "kind": "resident",
+      "name": "Nell",
+      "w": 192,
+      "h": 192,
+      "anchor": [96, 165],
+      "baseSize": 72,
+      "colored": false,
+      "allowRotate": false,
+      "allowFlip": true,
+      "rarity": "rare",
+      "description": "Lights the lanterns at dusk, one by one.",
+      "color": "#3f6aa8",
+      "mask": {
+        "offset": 230912,
+        "w": 96,
+        "h": 96
+      }
+    }
+  ],
+  "worlds": [
+    {
+      "id": "meadow",
+      "name": "Meadow",
+      "background": {
+        "painter": "meadow"
+      },
+      "horizon": 0.25,
+      "occluders": ["tree", "pine", "bush", "rock", "cottage", "tent", "haystack", "fence", "log"],
+      "smalls": {
+        "anchor": 0,
+        "boat": 0,
+        "shell": 0,
+        "mushroom": 2,
+        "acorn": 2,
+        "leaf": 2,
+        "tulip": 2,
+        "apple": 1.5,
+        "carrot": 1.5,
+        "pumpkin": 1.5,
+        "kite": 1.5
+      },
+      "sky": ["cloud"],
+      "residents": ["mossy", "bram", "tuck", "wren"]
+    },
+    {
+      "id": "harbour",
+      "name": "Harbour",
+      "background": {
+        "painter": "harbour"
+      },
+      "horizon": 0.29,
+      "occluders": ["lighthouse", "crates", "dinghy", "netrack", "boathouse", "pilings", "rock"],
+      "smalls": {
+        "carrot": 0,
+        "pumpkin": 0,
+        "tulip": 0,
+        "mushroom": 0,
+        "acorn": 0,
+        "anchor": 3,
+        "boat": 3,
+        "fish": 3,
+        "shell": 3,
+        "bottle": 2,
+        "flag": 2,
+        "envelope": 1.5,
+        "boot": 1.5
+      },
+      "sky": ["cloud"],
+      "residents": ["odo", "fen", "marlo", "sol"]
+    },
+    {
+      "id": "market",
+      "name": "Night Market",
+      "background": {
+        "painter": "market"
+      },
+      "horizon": 0.27,
+      "occluders": ["stall", "barrels", "cart", "well", "kiosk", "crates", "tent"],
+      "smalls": {
+        "anchor": 0,
+        "shell": 0,
+        "acorn": 0,
+        "mushroom": 0,
+        "leaf": 0,
+        "lantern": 3,
+        "candle": 2,
+        "bell": 2,
+        "crown": 2,
+        "gem": 2,
+        "cup": 2,
+        "book": 2,
+        "envelope": 1.5,
+        "apple": 1.5,
+        "pumpkin": 1.5,
+        "hat": 1.5
+      },
+      "sky": ["duskcloud"],
+      "residents": ["juno", "pip", "quill", "nell"]
+    }
+  ]
+}
