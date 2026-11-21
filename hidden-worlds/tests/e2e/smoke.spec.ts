@@ -1,6 +1,7 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
-test('page loads', async ({ page }) => {
+test('page loads into a playable screen', async ({ page }) => {
   await page.goto('./');
-  await expect(page.locator('h1')).toBeVisible();
+  await expect(page.locator('main').first()).toBeVisible();
+  await expect(page.getByTestId('world')).toBeVisible();
 });
