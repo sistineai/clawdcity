@@ -6,7 +6,7 @@
 - [x] M2 Packs and rendering (vector pack 67 sprites, sample-png, validator, golden in 3 engines)
 - [x] M3 Play (pan/zoom/tap, tray, hint, lockout, resident card, result, save/resume, E2E-1..4, PACK-A2)
 - [x] M4 Daily, archive, Explore (home with countdown, archive window, ladders, route guards)
-- [ ] M5 Progress and collection
+- [x] M5 Progress and collection (storage recovery and migration, streak, stats, collection, badges)
 - [ ] M6 Sharing
 - [ ] M7 Shell, Premium, adapters, PWA
 - [ ] M8 Content tools and hardening

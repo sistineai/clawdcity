@@ -10,6 +10,8 @@ import { Home } from './screens/Home';
 import { Archive } from './screens/Archive';
 import { Levels, Worlds } from './screens/Explore';
 import { Premium } from './screens/Premium';
+import { Collection } from './screens/Collection';
+import { Stats } from './screens/Stats';
 import { dailyAccess, levelOpen, worldOpen } from '../game/gates';
 import type { WorldId } from '../config';
 import { PlayScreen } from './play/PlayScreen';
@@ -84,6 +86,8 @@ function Routes() {
   if (a === 'explore' && b && isWorld(b))
     return worldOpen(doc, b as WorldId) ? <Levels world={b} /> : <Redirect to="explore" />;
   if (a === 'explore') return <Worlds />;
+  if (a === 'collection') return <Collection />;
+  if (a === 'stats') return <Stats />;
   if (a === 'premium') return <Premium source={route.query.get('source') ?? 'other'} />;
   return <Home />;
 }

@@ -34,3 +34,6 @@ One line each: what, why, what was rejected.
 - An unfinished daily puzzle can always be reopened and finished, even when its date has left the free archive window (DAILY-7 intent), because the route guard checks for saved progress first.
 - The archive lists the 7 free days and the 14 locked days before them; any locked row opens Premium with `source: archive`, and locked dates are refused by URL too.
 - Home shows a background-only painting of today's world (no sprites, so no spoilers) as a field-guide plate.
+- A resident counts towards the collection the moment it is tapped, even if the puzzle is left unfinished; the result sheet then reports it. Rejected "only on completion" because finding a character should feel immediately rewarded.
+- `played` counts puzzles started (first open of each puzzle); average time is over all completed puzzles, daily and Explore.
+- Schema version 1 is the first shipped schema; `migrations[0]` upgrades the unversioned development shape so the migration path is exercised by a test from day one.

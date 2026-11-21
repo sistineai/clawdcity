@@ -23,6 +23,7 @@ export const S = {
   nextIn: 'Next puzzle in',
   streak: 'Streak',
   bestStreak: 'Best',
+  bestStreakLong: 'Best streak',
   archive: 'Archive',
   explore: 'Explore',
   collection: 'Residents',

@@ -457,3 +457,102 @@
   padding: 0 var(--s3);
   background: var(--card);
 }
+
+/* ---------- collection ---------- */
+.guide-section {
+  display: grid;
+  gap: var(--s3);
+}
+.guide-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: var(--s1);
+  flex-wrap: wrap;
+}
+.guide-head .title {
+  font-size: 30px;
+}
+.guide-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--s3);
+}
+.guide-entry {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: var(--s3);
+  align-items: start;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r2);
+  padding: var(--s3);
+}
+.guide-entry:not(.got) {
+  background: var(--paper-deep);
+  border-style: dashed;
+}
+.guide-pic {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+.guide-entry.got .guide-pic {
+  background: #fff7df;
+}
+.guide-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+.guide-name {
+  font-size: 24px;
+}
+.guide-text .entry {
+  font-size: 15px;
+}
+
+/* ---------- stats ---------- */
+.stat-board {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  border-top: 2px solid var(--ink);
+}
+.stat-cell {
+  padding: var(--s3) var(--s2);
+  border-bottom: var(--rule);
+}
+.stat-cell:nth-child(odd) {
+  border-right: var(--rule);
+}
+.stat-cell dt {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.stat-cell dd {
+  margin: 0;
+  font-size: 40px;
+  line-height: 1.1;
+}
+@media (min-width: 640px) {
+  .stat-board {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .stat-cell {
+    border-right: var(--rule);
+  }
+}
