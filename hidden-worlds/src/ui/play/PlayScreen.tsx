@@ -35,7 +35,11 @@ interface Ready {
   idMap: Int32Array;
 }
 
-export function PlayScreen({ puzzle, challenge }: PlayProps) {
+export function PlayScreen({ puzzle: puzzleProp, challenge }: PlayProps) {
+  // The parent re-renders on every save; keep one puzzle object per puzzle so callbacks stay stable.
+  const key = refKey(puzzleProp);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const puzzle = useMemo(() => puzzleProp, [key]);
   const pack = useApp((s) => s.pack);
   const settings = useApp((s) => s.doc.settings);
   const onboarded = useApp((s) => s.doc.onboarded);
@@ -43,7 +47,6 @@ export function PlayScreen({ puzzle, challenge }: PlayProps) {
   const showToast = useApp((s) => s.showToast);
   const palette = usePalette();
   const reducedMotion = useReducedMotion();
-  const key = refKey(puzzle);
 
   const [ready, setReady] = useState<Ready | null>(null);
   const [active, setActive] = useState<ActivePuzzle | null>(null);

@@ -30,3 +30,7 @@ One line each: what, why, what was rejected.
 - Off-screen world canvas is painted once at 1 world px per pixel; when zoomed past 1:1, visible sprites are redrawn as vectors after the camera settles (140 ms), so zoomed art stays sharp without a huge backing store (SHELL-11).
 - The E2E hook (`window.__hwTest`, e2e build only) exposes target positions, a `reveal(x, y)` that moves the camera to a point (zoom >= 2.2 so edge sprites clear the corner buttons), an empty-point finder, the analytics events and the saved document. Tests then tap real screen pixels.
 - In the wide (landscape/desktop) layout the side tray shows each tag's name, since there is room; in portrait the name shows on tap, hover or long-press.
+- Date keys are the device's local date; date arithmetic runs on UTC day numbers derived from the key, so daylight-saving changes never skew a day (unit tests run with `TZ=America/New_York`, across both US transitions).
+- An unfinished daily puzzle can always be reopened and finished, even when its date has left the free archive window (DAILY-7 intent), because the route guard checks for saved progress first.
+- The archive lists the 7 free days and the 14 locked days before them; any locked row opens Premium with `source: archive`, and locked dates are refused by URL too.
+- Home shows a background-only painting of today's world (no sprites, so no spoilers) as a field-guide plate.

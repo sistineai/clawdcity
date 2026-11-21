@@ -5,7 +5,7 @@
 - [x] M1 Engine logic (synthetic masks: 300 puzzles, 0 forced, p95 ~60 ms)
 - [x] M2 Packs and rendering (vector pack 67 sprites, sample-png, validator, golden in 3 engines)
 - [x] M3 Play (pan/zoom/tap, tray, hint, lockout, resident card, result, save/resume, E2E-1..4, PACK-A2)
-- [ ] M4 Daily, archive, Explore
+- [x] M4 Daily, archive, Explore (home with countdown, archive window, ladders, route guards)
 - [ ] M5 Progress and collection
 - [ ] M6 Sharing
 - [ ] M7 Shell, Premium, adapters, PWA

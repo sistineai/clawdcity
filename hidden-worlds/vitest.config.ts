@@ -5,6 +5,8 @@ export default defineConfig({
   test: {
     include: ['tests/unit/**/*.test.ts'],
     environment: 'node',
+    // a zone with daylight-saving changes, so date tests cover them
+    env: { TZ: 'America/New_York' },
     testTimeout: 120_000,
     hookTimeout: 120_000,
     pool: 'forks',

@@ -7,6 +7,11 @@ import { isLevel, isWorld } from '../game/puzzles';
 import { useApp, getDoc } from '../state/store';
 import { S } from '../strings';
 import { Home } from './screens/Home';
+import { Archive } from './screens/Archive';
+import { Levels, Worlds } from './screens/Explore';
+import { Premium } from './screens/Premium';
+import { dailyAccess, levelOpen, worldOpen } from '../game/gates';
+import type { WorldId } from '../config';
 import { PlayScreen } from './play/PlayScreen';
 import { installBaseHook } from './play/testHook';
 import { go, useRoute } from './router';
@@ -47,19 +52,39 @@ function Toast() {
   );
 }
 
+function Redirect({ to }: { to: string }) {
+  useEffect(() => go(to, { replace: true }), [to]);
+  return null;
+}
+
 function Routes() {
   const route = useRoute();
+  const doc = useApp((s) => s.doc);
   const [a, b, c, d] = route.parts;
+  const today = todayKey(now());
   if (a === 'dev')
     return (
       <Suspense fallback={<p className="screen">{S.loading}</p>}>
         <Dev />
       </Suspense>
     );
-  if (a === 'play' && b === 'daily' && c && isDateKey(c))
+  if (a === 'play' && b === 'daily' && c && isDateKey(c)) {
+    // An open puzzle may always be finished, even after midnight (DAILY-7).
+    const access = doc.active[`daily:${c}`] ? 'archive' : dailyAccess(c, today);
+    if (access === 'future') return <Redirect to="" />;
+    if (access === 'locked') return <Redirect to="premium?source=archive" />;
     return <PlayScreen key={`d${c}`} puzzle={{ mode: 'daily', date: c }} />;
-  if (a === 'play' && b === 'explore' && c && isWorld(c) && isLevel(Number(d)))
+  }
+  if (a === 'play' && b === 'explore' && c && isWorld(c) && isLevel(Number(d))) {
+    if (!worldOpen(doc, c)) return <Redirect to="explore" />;
+    if (!levelOpen(doc, c, Number(d))) return <Redirect to={`explore/${c}`} />;
     return <PlayScreen key={`e${c}${d}`} puzzle={{ mode: 'explore', world: c, level: Number(d) }} />;
+  }
+  if (a === 'archive') return <Archive />;
+  if (a === 'explore' && b && isWorld(b))
+    return worldOpen(doc, b as WorldId) ? <Levels world={b} /> : <Redirect to="explore" />;
+  if (a === 'explore') return <Worlds />;
+  if (a === 'premium') return <Premium source={route.query.get('source') ?? 'other'} />;
   return <Home />;
 }
 

@@ -5,7 +5,7 @@ import { freshDoc, type SaveDoc } from '../../src/state/schema';
 import { STORAGE_KEY } from '../../src/config';
 
 export const DAY = '2026-12-03';
-export const NOW = new Date(`${DAY}T10:00:00`); // in the projects' timezone (America/New_York)
+export const NOW = new Date(`${DAY}T10:00:00-05:00`); // 10:00 in the projects' timezone (America/New_York, EST)
 
 interface Fixtures {
   errors: string[];
